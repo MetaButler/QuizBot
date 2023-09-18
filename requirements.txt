@@ -1,0 +1,5 @@
+matplotlib==3.6.3
+numpy==1.23.1
+psycopg2_binary==2.9.6
+python-telegram-bot==13.15
+Requests==2.31.0
