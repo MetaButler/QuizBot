@@ -7,10 +7,15 @@ import logging
 import io
 import matplotlib.pyplot as plt
 import numpy as np
+import datetime
+import pytz
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from prettytable import PrettyTable
 from telegram import Poll, Update, Chat
 from telegram.ext import Updater, CommandHandler, CallbackContext, PollAnswerHandler, Filters
+
+scheduler = BackgroundScheduler(timezone=pytz.utc)  # Use UTC as an example
 
 DATABASE_URL = "postgresql://zpmvqpmx:dRSGqOJ9XGBt_XExTeIATnbwKBPC4zRF@fanny.db.elephantsql.com/zpmvqpmx"
 
@@ -55,6 +60,16 @@ def create_tables(conn):
             chat_id BIGINT,
             question_id TEXT,
             PRIMARY KEY (chat_id, question_id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS weekly_scores (
+            user_id BIGINT,
+            chat_id BIGINT,
+            score REAL DEFAULT 0.0,
+            correct_answers INTEGER DEFAULT 0,
+            wrong_answers INTEGER DEFAULT 0,
+            UNIQUE (user_id, chat_id)
         )
     ''')
     conn.commit()
@@ -294,9 +309,13 @@ def log_user_response(update: Update, context: CallbackContext) -> None:
             # User answered correctly
             cursor.execute('INSERT INTO user_scores (user_id, chat_id, score, correct_answers) VALUES (%s, %s, 1, 1) ON CONFLICT (user_id, chat_id) DO UPDATE SET score = user_scores.score + 1, correct_answers = user_scores.correct_answers + 1',
                            (user_id, chat_id))
+            cursor.execute('INSERT INTO weekly_scores (user_id, chat_id, score, correct_answers) VALUES (%s, %s, 1, 1) ON CONFLICT (user_id, chat_id) DO UPDATE SET score = weekly_scores.score + 1, correct_answers = weekly_scores.correct_answers + 1',
+                           (user_id, chat_id))
         else:
             # User answered incorrectly
             cursor.execute('INSERT INTO user_scores (user_id, chat_id, score, wrong_answers) VALUES (%s, %s, -0.5, 1) ON CONFLICT (user_id, chat_id) DO UPDATE SET score = user_scores.score - 0.5, wrong_answers = user_scores.wrong_answers + 1',
+                           (user_id, chat_id))
+            cursor.execute('INSERT INTO weekly_scores (user_id, chat_id, score, wrong_answers) VALUES (%s, %s, -0.5, 1) ON CONFLICT (user_id, chat_id) DO UPDATE SET score = weekly_scores.score - 0.5, wrong_answers = weekly_scores.wrong_answers + 1',
                            (user_id, chat_id))
 
         conn.commit()
@@ -347,6 +366,49 @@ def rank(update: Update, context: CallbackContext) -> None:
         message += f"{trophy}{username}\n"
 
     update.message.reply_text(message)
+def weekly_rank(update: Update, context: CallbackContext) -> None:
+    chat_id = update.effective_chat.id
+
+    top_weekly_scores = get_top_weekly_scores(chat_id)
+
+    if not top_weekly_scores:
+        update.message.reply_text("No weekly scores found for this chat.")
+        return
+
+    message = "Weekly Score Holders:\n"
+    for i, (user_id, score) in enumerate(top_weekly_scores, start=1):
+        user = context.bot.get_chat_member(chat_id, user_id).user
+        if i == 1:
+            trophy = "🏆"
+        elif i == 2:
+            trophy = "🥈"
+        elif i == 3:
+            trophy = "🥉"
+        else:
+            trophy = "🏅"
+
+        username = f"{user.first_name}: {score:.2f}".ljust(20)
+        message += f"{trophy}{username}\n"
+
+    update.message.reply_text(message)
+
+def get_top_weekly_scores(chat_id, limit=5):
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT user_id, score
+        FROM weekly_scores
+        WHERE chat_id = %s
+        ORDER BY score DESC
+        LIMIT %s
+    ''', (chat_id, limit))
+
+    top_weekly_scores = cursor.fetchall()
+
+    conn.close()
+
+    return top_weekly_scores
 
 def score(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
@@ -466,6 +528,20 @@ def stats(update: Update, context: CallbackContext) -> None:
     else:
         update.message.reply_text("Sorry, you are not authorized to use this command.")
 
+def reset_weekly_scores():
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    # Reset the "weekly_scores" table for the current week
+    cursor.execute(
+        "UPDATE weekly_scores "
+        "SET score = 0, correct_answers = 0, wrong_answers = 0"
+    )
+
+    conn.commit()
+    conn.close()
+
+
 def main() -> None:
     updater = Updater("5852350596:AAG2GW5-BW9ekRDRvyZ91a66uIjJqYg5o5A", use_context=True)
     dispatcher = updater.dispatcher
@@ -477,11 +553,17 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("score", score_dm_total, Filters.chat_type.private))    
     dispatcher.add_handler(CommandHandler("quiz", quiz))
     dispatcher.add_handler(CommandHandler("stats", stats))
+    dispatcher.add_handler(CommandHandler("week", weekly_rank))
 
     job_queue = updater.job_queue
     send_auto_question_with_bot = lambda context: send_auto_question(updater.bot, context)
     job_queue.run_once(send_auto_question_with_bot, 10)  # Run once after 60 seconds    
-    job_queue.run_repeating(send_auto_question_with_bot, interval=3600)
+    job_queue.run_repeating(send_auto_question_with_bot, interval=30)
+    scheduler.add_job(reset_weekly_scores, 'cron', day_of_week='sun', hour=0, minute=0, second=0, timezone=pytz.utc)
+
+    # Start the scheduler
+    scheduler.start()
+
     updater.start_polling()
     updater.idle()
 
