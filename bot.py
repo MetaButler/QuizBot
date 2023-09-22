@@ -182,100 +182,143 @@ def quiz(update: Update, context: CallbackContext) -> None:
         logger.error(f"Failed to fetch quiz questions: {e}")
         update.message.reply_text("Failed to fetch quiz questions. Please try again later.")
         
-def auto(bot, chat_id, context):
+def fetch_question_from_opentdb():
+    api_url = f'https://opentdb.com/api.php?amount=1'
+    response = requests.get(api_url)
+    data = response.json()
+    return data
+
+def fetch_question_from_trivia_api():
+    api_url = 'https://the-trivia-api.com/api/questions/'
+    response = requests.get(api_url)
+    data = response.json()
+    return data
+
+def process_question_from_opentdb(bot, chat_id, cursor, data):
+    conn = psycopg2.connect(DATABASE_URL)
+    create_tables(conn)
+    cursor = conn.cursor()
+    
+    if 'results' not in data or not data['results']:
+        conn.close()
+        return
+
+    question_id = data['results'][0]['question']
+
+    cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
+    if cursor.fetchone():
+        conn.close()
+        return  # Question has been sent before
+
+    question = html.unescape(data['results'][0]['question'])
+    correct_answer = data['results'][0]['correct_answer']
+    incorrect_answers = data['results'][0]['incorrect_answers']
+    options = [html.unescape(option) for option in incorrect_answers] + [html.unescape(correct_answer)]
+    random.shuffle(options)
+    correct_option_id = options.index(html.unescape(correct_answer))
+
+    message = bot.send_poll(chat_id, question, options, type=Poll.QUIZ, correct_option_id=correct_option_id, is_anonymous=False)
+    poll = message.poll
+
+    cursor.execute('''
+        INSERT INTO sent_questions (chat_id, question_id) VALUES (%s, %s)
+        ON CONFLICT (chat_id, question_id) DO NOTHING
+    ''', (chat_id, question_id))
+
+    cursor.execute('''
+        INSERT INTO poll_answers (poll_id, chat_id, correct_option_id) VALUES (%s, %s, %s)
+        ON CONFLICT (poll_id) DO UPDATE SET chat_id = EXCLUDED.chat_id, correct_option_id = EXCLUDED.correct_option_id
+    ''', (poll.id, chat_id, correct_option_id))
+    
+    conn.commit()
+    conn.close()
+
+def process_question_from_trivia_api(bot, chat_id, cursor, data):
     conn = psycopg2.connect(DATABASE_URL)
     create_tables(conn)
     cursor = conn.cursor()
 
-    max_retries = 1  # Set a maximum number of retries
-    retries = 0
+    if not data or not isinstance(data, list):
+        conn.close()
+        return
 
-    # Generate a new question and check if it has been sent before
-    while retries < max_retries:
-        api_url = f'https://opentdb.com/api.php?amount=1'
-        
-        # Log the API call and associated group
-        logger.info(f'Making API call to {api_url} for group {chat_id}')
-        
-        response = requests.get(api_url)
-        data = response.json()
+    selected_question = random.choice(data)
+    question_id = selected_question['id']
 
-        # Check if the response contains questions
-        if 'results' not in data or not data['results']:
-            retries += 1
-            continue  # Retry if no new questions are found
+    cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
+    if cursor.fetchone():
+        conn.close()
+        return  # Question has been sent before
 
-        question_id = data['results'][0]['question']
+    question = html.unescape(selected_question['question'])
+    correct_answer = selected_question['correctAnswer']
+    incorrect_answers = selected_question['incorrectAnswers']
+    options = [html.unescape(option) for option in incorrect_answers] + [html.unescape(correct_answer)]
+    random.shuffle(options)
+    correct_option_id = options.index(html.unescape(correct_answer))
 
-        # Check if this question has been sent to the group before
-        cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
-        if not cursor.fetchone():
-            break  # This question is new to the group, break out of the loop
+    message = bot.send_poll(chat_id, question, options, type=Poll.QUIZ, correct_option_id=correct_option_id, is_anonymous=False)
+    poll = message.poll
 
-        retries += 1
+    cursor.execute('''
+        INSERT INTO sent_questions (chat_id, question_id) VALUES (%s, %s)
+        ON CONFLICT (chat_id, question_id) DO NOTHING
+    ''', (chat_id, question_id))
 
-    if retries >= max_retries:
-        # Fallback to the alternative API if max retries are reached
-        logger.info("Fallback to alternative API")
-        response = requests.get('https://the-trivia-api.com/api/questions/')
-        data = response.json()
+    cursor.execute('''
+        INSERT INTO poll_answers (poll_id, chat_id, correct_option_id) VALUES (%s, %s, %s)
+        ON CONFLICT (poll_id) DO UPDATE SET chat_id = EXCLUDED.chat_id, correct_option_id = EXCLUDED.correct_option_id
+    ''', (poll.id, chat_id, correct_option_id))
 
-        if data and isinstance(data, list):
-            selected_question = random.choice(data)
-            question_id = selected_question['id']
-
-            # Check if this question has been sent to the group before
-            cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
-            if not cursor.fetchone():
-                question = html.unescape(selected_question['question'])
-                correct_answer = selected_question['correctAnswer']
-                incorrect_answers = selected_question['incorrectAnswers']
-                options = [html.unescape(option) for option in incorrect_answers] + [html.unescape(correct_answer)]
-                random.shuffle(options)
-                correct_option_id = options.index(html.unescape(correct_answer))
-
-                message = bot.send_poll(chat_id, question, options, type=Poll.QUIZ, correct_option_id=correct_option_id, is_anonymous=False)
-                poll = message.poll
-
-                cursor.execute('''
-                    INSERT INTO sent_questions (chat_id, question_id) VALUES (%s, %s)
-                    ON CONFLICT (chat_id, question_id) DO NOTHING
-                ''', (chat_id, question_id))
-
-                cursor.execute('''
-                    INSERT INTO poll_answers (poll_id, chat_id, correct_option_id) VALUES (%s, %s, %s)
-                    ON CONFLICT (poll_id) DO UPDATE SET chat_id = EXCLUDED.chat_id, correct_option_id = EXCLUDED.correct_option_id
-                ''', (poll.id, chat_id, correct_option_id))
-
-                conn.commit()
-            else:
-                bot.send_message(chat_id, "Question has already been sent.")
-        else:
-            bot.send_message(chat_id, "No quiz questions found. Please try again later.")
-    else:
-        question = html.unescape(data['results'][0]['question'])
-        correct_answer = data['results'][0]['correct_answer']
-        incorrect_answers = data['results'][0]['incorrect_answers']
-        options = [html.unescape(option) for option in incorrect_answers] + [html.unescape(correct_answer)]
-        random.shuffle(options)
-        correct_option_id = options.index(html.unescape(correct_answer))
-
-        message = bot.send_poll(chat_id, question, options, type=Poll.QUIZ, correct_option_id=correct_option_id, is_anonymous=False)
-        poll = message.poll
-
-        cursor.execute('''
-            INSERT INTO sent_questions (chat_id, question_id) VALUES (%s, %s)
-            ON CONFLICT (chat_id, question_id) DO NOTHING
-        ''', (chat_id, question_id))
-
-        cursor.execute('''
-            INSERT INTO poll_answers (poll_id, chat_id, correct_option_id) VALUES (%s, %s, %s)
-            ON CONFLICT (poll_id) DO UPDATE SET chat_id = EXCLUDED.chat_id, correct_option_id = EXCLUDED.correct_option_id
-        ''', (poll.id, chat_id, correct_option_id))
-
-        conn.commit()
-
+    conn.commit()
     conn.close()
+
+def auto(bot, chat_id, cursor):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        create_tables(conn)
+        cursor = conn.cursor()
+
+        for _ in range(2):  # Retry twice
+            if random.choice([True, False]):  # Randomly choose an API
+                data = fetch_question_from_opentdb()
+                if data and 'results' in data and data['results']:
+                    question_id = data['results'][0]['question']
+                    cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
+                    if cursor.fetchone():
+                        logger.warning("Question already sent before from OpenTDB")
+                    else:
+                        process_question_from_opentdb(bot, chat_id, cursor, data)
+                        logger.info("Question successfully sent from OpenTDB")
+                        conn.commit()  # Commit changes to the database
+                        return  # Question successfully sent
+                else:
+                    logger.warning("Failed to fetch a question from OpenTDB")
+            else:
+                data = fetch_question_from_trivia_api()
+                if data and isinstance(data, list) and data:  # Check if data is a non-empty list
+                    selected_question = random.choice(data)
+                    question_id = selected_question['id']
+                    cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
+                    if cursor.fetchone():
+                        logger.warning("Question already sent before from Trivia API")
+                    else:
+                        process_question_from_trivia_api(bot, chat_id, cursor, data)
+                        logger.info("Question successfully sent from Trivia API")
+                        conn.commit()  # Commit changes to the database
+                        return  # Question successfully sent
+                else:
+                    logger.warning("Failed to fetch a question from Trivia API")
+
+        # If both APIs fail or the question is already in the database, send "Sorry, No new question found" message
+        bot.send_message(chat_id, "Sorry, No new question found")
+        logger.warning("No new question found after retries")
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
 
 def send_auto_question(bot, context):
     conn = psycopg2.connect(DATABASE_URL)
@@ -289,7 +332,7 @@ def send_auto_question(bot, context):
 
     for chat_id in chat_ids:
         print(f"Sending auto quiz to chat_id: {chat_id}")
-        auto(bot, chat_id, context)
+        auto(bot, chat_id, cursor) 
 
 def log_user_response(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
@@ -366,6 +409,7 @@ def rank(update: Update, context: CallbackContext) -> None:
         message += f"{trophy}{username}\n"
 
     update.message.reply_text(message)
+
 def weekly_rank(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
 
@@ -558,7 +602,7 @@ def main() -> None:
     job_queue = updater.job_queue
     send_auto_question_with_bot = lambda context: send_auto_question(updater.bot, context)
     job_queue.run_once(send_auto_question_with_bot, 10)  # Run once after 60 seconds    
-    job_queue.run_repeating(send_auto_question_with_bot, interval=30)
+    job_queue.run_repeating(send_auto_question_with_bot, interval=50)
     scheduler.add_job(reset_weekly_scores, 'cron', day_of_week='sun', hour=0, minute=0, second=0, timezone=pytz.utc)
 
     # Start the scheduler
