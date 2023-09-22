@@ -2,6 +2,7 @@ from telegram import Update, Chat
 from telegram.ext import CallbackContext
 import psycopg2
 import configparser
+from telegram import ChatMember
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -10,28 +11,38 @@ config.read('config.ini')
 DATABASE_URL = config['database']['DATABASE_URL']
 
 def start(update: Update, context: CallbackContext) -> None:
-    user = update.effective_user
+    chat_id = update.effective_chat.id
 
-    if update.effective_chat.type == Chat.PRIVATE:
-        update.message.reply_text("Hi, I'm Alive!. Send /quiz")
+    # Check if quiz is enabled for this group
+    quiz_enabled = is_quiz_enabled(chat_id)
+
+    if quiz_enabled:
+        update.message.reply_text("Hi, I'm Alive!")
     else:
-        update.message.reply_html("Hi, I'm Alive!\n\n")
+        update.message.reply_text("Hi, I'm Alive! Please enable the quiz by using /enablequiz.")
 
-def enable(update: Update, context: CallbackContext) -> None:
+def enablequiz(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
     message_thread_id = update.effective_message.message_thread_id  # Get the message_thread_id
+    user = update.effective_user
 
     # Connect to the database
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
 
     try:
+        # Check if the user is an administrator
+        chat_member = context.bot.get_chat_member(chat_id, user.id)
+        if chat_member.status not in (ChatMember.ADMINISTRATOR, ChatMember.CREATOR):
+            update.message.reply_text("Only administrators can enable quizzes for this group.")
+            return
+
         # Insert data into the group_preferences table or update if it already exists
         cursor.execute("""
             INSERT INTO group_preferences (chat_id, send_questions, message_thread_id) 
             VALUES (%s, %s, %s) 
             ON CONFLICT (chat_id) 
-            DO UPDATE SET send_questions = EXCLUDED.send_questions, message_thread_id = EXCLUDED.message_thread_id
+            DO UPDATE SET send_questions = TRUE, message_thread_id = EXCLUDED.message_thread_id
         """, (chat_id, True, message_thread_id))
         conn.commit()
         update.message.reply_text("Quiz enabled for this group!")
@@ -40,6 +51,49 @@ def enable(update: Update, context: CallbackContext) -> None:
         update.message.reply_text(f"An error occurred: {e}")
     finally:
         conn.close()
+
+def disablequiz(update: Update, context: CallbackContext) -> None:
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+
+    # Connect to the database
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    try:
+        # Check if the user is an administrator
+        chat_member = context.bot.get_chat_member(chat_id, user.id)
+        if chat_member.status not in (ChatMember.ADMINISTRATOR, ChatMember.CREATOR):
+            update.message.reply_text("Only administrators can disable quizzes for this group.")
+            return
+
+        # Update the group_preferences table to disable quiz
+        cursor.execute("""
+            UPDATE group_preferences 
+            SET send_questions = FALSE 
+            WHERE chat_id = %s
+        """, (chat_id,))
+        conn.commit()
+        update.message.reply_text("Quiz disabled for this group!")
+    except Exception as e:
+        conn.rollback()
+        update.message.reply_text(f"An error occurred: {e}")
+    finally:
+        conn.close()
+
+def is_quiz_enabled(chat_id):
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT send_questions FROM group_preferences WHERE chat_id = %s", (chat_id,))
+    row = cursor.fetchone()
+
+    conn.close()
+
+    if row:
+        return row[0]  # Returns True or False
+    else:
+        return False  # Default to disabled if no record found
 
 def help(update: Update, context: CallbackContext) -> None:
     user = update.effective_user

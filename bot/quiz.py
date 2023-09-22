@@ -92,13 +92,13 @@ def quiz(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("Failed to fetch quiz questions. Please try again later.")
         
 def fetch_question_from_opentdb():
-    api_url = f'https://opentdb.com/api.php?amount=1'
+    api_url = f'https://opentdb.com/api.php?amount=1&category=26&type=boolean'
     response = requests.get(api_url)
     data = response.json()
     return data
 
 def fetch_question_from_trivia_api():
-    api_url = 'https://the-trivia-api.com/api/questions/'
+    api_url = 'https://the-trivia-api.com/api/question/622a1c357cc59eab6f94fce0/'
     response = requests.get(api_url)
     data = response.json()
     return data
@@ -182,46 +182,62 @@ def process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_
     conn.commit()
     conn.close()
 
+import random
+
 def auto(bot, chat_id, cursor, message_thread_id):
     try:
         conn = psycopg2.connect(DATABASE_URL)
         create_tables(conn)
         cursor = conn.cursor()
 
-        for _ in range(2):  # Retry twice
-            if random.choice([True, False]):  # Randomly choose an API
-                data = fetch_question_from_opentdb()
-                if data and 'results' in data and data['results']:
-                    question_id = data['results'][0]['question']
-                    cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
-                    if cursor.fetchone():
-                        logger.warning("Question already sent before from OpenTDB")
-                    else:
-                        process_question_from_opentdb(bot, chat_id, cursor, data, message_thread_id)
-                        logger.info("Question successfully sent from OpenTDB")
-                        conn.commit()  # Commit changes to the database
-                        return  # Question successfully sent
-                else:
-                    logger.warning("Failed to fetch a question from OpenTDB")
-            else:
-                data = fetch_question_from_trivia_api()
-                if data and isinstance(data, list) and data:  # Check if data is a non-empty list
-                    selected_question = random.choice(data)
-                    question_id = selected_question['id']
-                    cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
-                    if cursor.fetchone():
-                        logger.warning("Question already sent before from Trivia API")
-                    else:
-                        process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_id)
-                        logger.info("Question successfully sent from Trivia API")
-                        conn.commit()  # Commit changes to the database
-                        return  # Question successfully sent
-                else:
-                    logger.warning("Failed to fetch a question from Trivia API")
+        total_retries = 0  # Total number of API retries
+        max_retries = 3    # Maximum retries for each API
 
-        # If both APIs fail or the question is already in the database, send "Sorry, No new question found" message
+        while total_retries < 2 * max_retries:  # Two APIs, so double the max retries
+            use_trivia_api = random.choice([True, False])  # Randomly choose an API
+
+            if use_trivia_api:
+                if total_retries // 2 < max_retries:  # Check if Trivia API retries are within limit
+                    data = fetch_question_from_trivia_api()
+                    if data and isinstance(data, list) and data:  # Check if data is a non-empty list
+                        selected_question = random.choice(data)
+                        question_id = selected_question['id']
+                        cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
+                        if cursor.fetchone():
+                            logger.warning("Question already sent before from Trivia API")
+                        else:
+                            process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_id)
+                            logger.info("Question successfully sent from Trivia API")
+                            conn.commit()  # Commit changes to the database
+                            return  # Question successfully sent
+                    else:
+                        logger.warning("Failed to fetch a question from Trivia API")
+                else:
+                    logger.warning("Exceeded Trivia API retry limit")
+            else:
+                if total_retries // 2 < max_retries:  # Check if OpenTDB retries are within limit
+                    data = fetch_question_from_opentdb()
+                    if data and 'results' in data and data['results']:
+                        question_id = data['results'][0]['question']
+                        cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
+                        if cursor.fetchone():
+                            logger.warning("Question already sent before from OpenTDB")
+                        else:
+                            process_question_from_opentdb(bot, chat_id, cursor, data, message_thread_id)
+                            logger.info("Question successfully sent from OpenTDB")
+                            conn.commit()  # Commit changes to the database
+                            return  # Question successfully sent
+                    else:
+                        logger.warning("Failed to fetch a question from OpenTDB")
+                else:
+                    logger.warning("Exceeded OpenTDB retry limit")
+
+            total_retries += 1
+
+        # If no questions were successfully fetched, send a message
         bot.send_message(chat_id, "Sorry, No new question found")
         logger.warning("No new question found after retries")
+        
     except Exception as e:
         logger.error(f"An error occurred: {e}")
     finally:

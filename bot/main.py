@@ -1,7 +1,7 @@
 from telegram.ext import CommandHandler, PollAnswerHandler, Filters
 from telegram import Update, Chat
 from telegram.ext import Updater, CallbackContext
-from .helpers import start, help, stats, enable
+from .helpers import start, help, stats, enablequiz, disablequiz
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 from .quiz import quiz, send_auto_question
@@ -28,7 +28,8 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("quiz", quiz))
     dispatcher.add_handler(CommandHandler("stats", stats))
     dispatcher.add_handler(CommandHandler("week", weekly_rank))
-    dispatcher.add_handler(CommandHandler("enable", enable, Filters.chat_type.groups))
+    dispatcher.add_handler(CommandHandler("enablequiz", enablequiz, Filters.chat_type.groups))
+    dispatcher.add_handler(CommandHandler("disablequiz", disablequiz, Filters.chat_type.groups))
 
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -41,7 +42,7 @@ def main() -> None:
     job_queue = updater.job_queue
     send_auto_question_with_bot = lambda context: send_auto_question(updater.bot, context)
     job_queue.run_once(send_auto_question_with_bot, 10)  # Run once after 60 seconds    
-    job_queue.run_repeating(send_auto_question_with_bot, interval=50)
+    job_queue.run_repeating(send_auto_question_with_bot, interval=60)
     scheduler.add_job(reset_weekly_scores, 'cron', day_of_week='sun', hour=0, minute=0, second=0, timezone=pytz.utc)
 
     # Start the scheduler
