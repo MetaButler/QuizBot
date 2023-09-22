@@ -41,8 +41,8 @@ def main() -> None:
 
     job_queue = updater.job_queue
     send_auto_question_with_bot = lambda context: send_auto_question(updater.bot, context)
-    job_queue.run_once(send_auto_question_with_bot, 10)  # Run once after 60 seconds    
-    job_queue.run_repeating(send_auto_question_with_bot, interval=60)
+    job_queue.run_once(send_auto_question_with_bot, 1890)  # Run once after 60 seconds    
+    job_queue.run_repeating(send_auto_question_with_bot, interval=3600)
     scheduler.add_job(reset_weekly_scores, 'cron', day_of_week='sun', hour=0, minute=0, second=0, timezone=pytz.utc)
 
     # Start the scheduler

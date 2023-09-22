@@ -92,13 +92,13 @@ def quiz(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("Failed to fetch quiz questions. Please try again later.")
         
 def fetch_question_from_opentdb():
-    api_url = f'https://opentdb.com/api.php?amount=1&category=26&type=boolean'
+    api_url = f'https://opentdb.com/api.php?amount=1'
     response = requests.get(api_url)
     data = response.json()
     return data
 
 def fetch_question_from_trivia_api():
-    api_url = 'https://the-trivia-api.com/api/question/622a1c357cc59eab6f94fce0/'
+    api_url = 'https://the-trivia-api.com/api/questions/'
     response = requests.get(api_url)
     data = response.json()
     return data
