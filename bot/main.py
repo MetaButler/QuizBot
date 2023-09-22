@@ -4,7 +4,9 @@ from telegram.ext import Updater, CallbackContext
 from .helpers import start, help, stats, enablequiz, disablequiz
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
+import psycopg2
 from .quiz import quiz, send_auto_question
+from .database import create_tables
 from .score import reset_weekly_scores, log_user_response, rank, score, score_dm_total, weekly_rank
 import configparser
 
@@ -14,6 +16,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 # Access the BOT_TOKEN
+DATABASE_URL = config['database']['DATABASE_URL']
 BOT_TOKEN = config['bot']['BOT_TOKEN']
 
 def main() -> None:
