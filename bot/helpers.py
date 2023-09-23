@@ -4,6 +4,7 @@ import psycopg2
 import configparser
 from telegram import ChatMember
 from .database import create_tables
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -12,13 +13,32 @@ DATABASE_URL = config['database']['DATABASE_URL']
 
 def start(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
 
-    quiz_enabled = is_quiz_enabled(chat_id)
+    # Check if the user is in a private chat (DM)
+    if update.effective_chat.type == "private":
+        # Create a message for DM with a button to add the bot to a group
+        message_text = "Hi, I'm Alive! To get a quiz, please send /quiz.\n\n"
+        message_text += "If you want to use this bot in a group, you can add me to your group by clicking the button below."
 
-    if quiz_enabled:
-        update.message.reply_text("Hi, I'm Alive!")
+        # Create an inline keyboard with a button to add the bot to a group
+        keyboard = [[InlineKeyboardButton("Add to Group", url=f"https://t.me/MetaXButlerBot?startgroup=start")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Send the message with the button to the user
+        update.message.reply_text(
+            text=message_text,
+            reply_markup=reply_markup,
+            parse_mode="HTML",
+            disable_web_page_preview=True,
+        )
     else:
-        update.message.reply_text("Hi, I'm Alive! Please enable the quiz by using /enablequiz.")
+        # For group chats, check if the quiz is enabled and reply accordingly
+        quiz_enabled = is_quiz_enabled(chat_id)
+        if quiz_enabled:
+            update.message.reply_text("Hi, I'm Alive!")
+        else:
+            update.message.reply_text("Hi, I'm Alive! Please enable the quiz by using /enablequiz.")
 
 def enablequiz(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
