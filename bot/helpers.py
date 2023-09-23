@@ -49,7 +49,7 @@ def enablequiz(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("Quiz enabled for this group!")
     except Exception as e:
         conn.rollback()
-        update.message.reply_text(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")  # Log the error
     finally:
         conn.close()
 
