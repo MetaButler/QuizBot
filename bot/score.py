@@ -11,7 +11,6 @@ from .database import create_tables
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-# Access the BOT_TOKEN
 DATABASE_URL = config['database']['DATABASE_URL']
 
 def log_user_response(update: Update, context: CallbackContext) -> None:
@@ -29,13 +28,11 @@ def log_user_response(update: Update, context: CallbackContext) -> None:
     if row:
         chat_id, correct_option_id = row
         if correct_option_id == option_id:
-            # User answered correctly
             cursor.execute('INSERT INTO user_scores (user_id, chat_id, score, correct_answers) VALUES (%s, %s, 1, 1) ON CONFLICT (user_id, chat_id) DO UPDATE SET score = user_scores.score + 1, correct_answers = user_scores.correct_answers + 1',
                            (user_id, chat_id))
             cursor.execute('INSERT INTO weekly_scores (user_id, chat_id, score, correct_answers) VALUES (%s, %s, 1, 1) ON CONFLICT (user_id, chat_id) DO UPDATE SET score = weekly_scores.score + 1, correct_answers = weekly_scores.correct_answers + 1',
                            (user_id, chat_id))
         else:
-            # User answered incorrectly
             cursor.execute('INSERT INTO user_scores (user_id, chat_id, score, wrong_answers) VALUES (%s, %s, -0.5, 1) ON CONFLICT (user_id, chat_id) DO UPDATE SET score = user_scores.score - 0.5, wrong_answers = user_scores.wrong_answers + 1',
                            (user_id, chat_id))
             cursor.execute('INSERT INTO weekly_scores (user_id, chat_id, score, wrong_answers) VALUES (%s, %s, -0.5, 1) ON CONFLICT (user_id, chat_id) DO UPDATE SET score = weekly_scores.score - 0.5, wrong_answers = weekly_scores.wrong_answers + 1',
@@ -139,7 +136,7 @@ def score(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
     userid = str(user.id)
     user_id = f"{' ' * (10 - len(userid))}{userid}" if len(userid) < 10 else userid[:10]
-    username = user.first_name[:15]  # Change this to get the desired name field
+    username = user.first_name[:15]
     user_name = f"{username}{' ' * (15 - len(username))}" if len(username) < 15 else username[:15]
     
     conn = psycopg2.connect(DATABASE_URL)
@@ -153,7 +150,6 @@ def score(update: Update, context: CallbackContext) -> None:
         user_score, correct_answers, wrong_answers = row
         accuracy = (correct_answers / (correct_answers + wrong_answers)) * 100 if correct_answers + wrong_answers > 0 else 0
 
-        # Create a PrettyTable instance
         table = PrettyTable()
         table.field_names = [user_name, user_id]
         table.align[user_name] = "l"
@@ -163,7 +159,6 @@ def score(update: Update, context: CallbackContext) -> None:
         table.add_row(["Wrong Answers", str(wrong_answers)])
         table.add_row(["Accuracy", f"{accuracy:.2f}%"])
 
-        # Get the table as a string
         table_str = table.get_string()
 
         update.message.reply_text(f"```\n{table_str}\n```", parse_mode="Markdown")
@@ -189,7 +184,6 @@ def score_dm_total(update: Update, context: CallbackContext) -> None:
         total_score, total_correct_answers, total_wrong_answers = row
         total_accuracy = (total_correct_answers / (total_correct_answers + total_wrong_answers)) * 100 if total_correct_answers + total_wrong_answers > 0 else 0
 
-        # Create a bar chart
         labels = ['Correct Answers', 'Wrong Answers']
         values = [total_correct_answers, total_wrong_answers]
         x = np.arange(len(labels))
@@ -205,24 +199,20 @@ def score_dm_total(update: Update, context: CallbackContext) -> None:
         ax.set_xticklabels(labels)
         ax.legend()
 
-        # Add data labels to the bars
         for rect in rects:
             height = rect.get_height()
             ax.annotate(f'{height}',
                         xy=(rect.get_x() + rect.get_width() / 2, height),
-                        xytext=(0, 3),  # 3 points vertical offset
+                        xytext=(0, 3),
                         textcoords="offset points",
                         ha='center', va='bottom')
 
-        # Add accuracy to the caption
         caption = f"Total Score Across Chats: {total_score}\nAccuracy: {total_accuracy:.2f}%"
 
-        # Save the bar chart to a byte buffer
         buffer = io.BytesIO()
         plt.savefig(buffer, format='png')
         buffer.seek(0)
 
-        # Send the bar chart as a photo with the updated caption
         update.message.reply_photo(photo=io.BufferedReader(buffer), caption=caption)
 
         plt.close()
@@ -233,7 +223,6 @@ def reset_weekly_scores():
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
 
-    # Reset the "weekly_scores" table for the current week
     cursor.execute(
         "UPDATE weekly_scores "
         "SET score = 0, correct_answers = 0, wrong_answers = 0"

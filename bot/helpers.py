@@ -8,13 +8,11 @@ from .database import create_tables
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-# Access the BOT_TOKEN
 DATABASE_URL = config['database']['DATABASE_URL']
 
 def start(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
 
-    # Check if quiz is enabled for this group
     quiz_enabled = is_quiz_enabled(chat_id)
 
     if quiz_enabled:
@@ -24,21 +22,18 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def enablequiz(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
-    message_thread_id = update.effective_message.message_thread_id  # Get the message_thread_id
+    message_thread_id = update.effective_message.message_thread_id
     user = update.effective_user
 
-    # Connect to the database
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
 
     try:
-        # Check if the user is an administrator
         chat_member = context.bot.get_chat_member(chat_id, user.id)
         if chat_member.status not in (ChatMember.ADMINISTRATOR, ChatMember.CREATOR):
             update.message.reply_text("Only administrators can enable quizzes for this group.")
             return
 
-        # Insert data into the group_preferences table or update if it already exists
         cursor.execute("""
             INSERT INTO group_preferences (chat_id, send_questions, message_thread_id) 
             VALUES (%s, %s, %s) 
@@ -57,18 +52,15 @@ def disablequiz(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
     user = update.effective_user
 
-    # Connect to the database
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
 
     try:
-        # Check if the user is an administrator
         chat_member = context.bot.get_chat_member(chat_id, user.id)
         if chat_member.status not in (ChatMember.ADMINISTRATOR, ChatMember.CREATOR):
             update.message.reply_text("Only administrators can disable quizzes for this group.")
             return
 
-        # Update the group_preferences table to disable quiz
         cursor.execute("""
             UPDATE group_preferences 
             SET send_questions = FALSE 
@@ -92,9 +84,9 @@ def is_quiz_enabled(chat_id):
     conn.close()
 
     if row:
-        return row[0]  # Returns True or False
+        return row[0]
     else:
-        return False  # Default to disabled if no record found
+        return False
 
 def help(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
@@ -112,7 +104,7 @@ def help(update: Update, context: CallbackContext) -> None:
     )
 
 def stats(update: Update, context: CallbackContext) -> None:
-    allowed_user_id = 1999633661  # Replace with the specific user_id allowed to use the command
+    allowed_user_id = 1999633661
     user_id = update.effective_user.id
 
     if user_id == allowed_user_id:
@@ -120,11 +112,9 @@ def stats(update: Update, context: CallbackContext) -> None:
         create_tables(conn)
         cursor = conn.cursor()
 
-        # Get total chats from group_preferences
         cursor.execute("SELECT COUNT(*) FROM group_preferences")
         total_chats = cursor.fetchone()[0]
 
-        # Get total unique users from user_scores
         cursor.execute("SELECT COUNT(DISTINCT user_id) FROM user_scores")
         total_users = cursor.fetchone()[0]
 

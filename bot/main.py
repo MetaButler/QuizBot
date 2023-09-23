@@ -10,12 +10,11 @@ from .database import create_tables
 from .score import reset_weekly_scores, log_user_response, rank, score, score_dm_total, weekly_rank
 import configparser
 
-scheduler = BackgroundScheduler(timezone=pytz.utc)  # Use UTC as an example
+scheduler = BackgroundScheduler(timezone=pytz.utc)
 
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-# Access the BOT_TOKEN
 DATABASE_URL = config['database']['DATABASE_URL']
 BOT_TOKEN = config['bot']['BOT_TOKEN']
 
@@ -44,11 +43,10 @@ def main() -> None:
 
     job_queue = updater.job_queue
     send_auto_question_with_bot = lambda context: send_auto_question(updater.bot, context)
-    job_queue.run_once(send_auto_question_with_bot, 1890)  # Run once after 60 seconds    
+    job_queue.run_once(send_auto_question_with_bot, 1800)    
     job_queue.run_repeating(send_auto_question_with_bot, interval=3600)
     scheduler.add_job(reset_weekly_scores, 'cron', day_of_week='sun', hour=0, minute=0, second=0, timezone=pytz.utc)
 
-    # Start the scheduler
     scheduler.start()
 
     updater.start_polling()

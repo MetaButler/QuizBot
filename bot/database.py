@@ -1,15 +1,8 @@
 import psycopg2
-from prettytable import PrettyTable
-from telegram import Update
-from telegram.ext import CallbackContext
-import matplotlib.pyplot as plt
-import numpy as np
-import io
 import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-# Access the BOT_TOKEN
 DATABASE_URL = config['database']['DATABASE_URL']
 
 def create_tables(conn):
