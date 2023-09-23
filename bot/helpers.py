@@ -19,7 +19,7 @@ def start(update: Update, context: CallbackContext) -> None:
     if update.effective_chat.type == "private":
         # Create a message for DM with a button to add the bot to a group
         message_text = "Hi, I'm Alive! To get a quiz, please send /quiz.\n\n"
-        message_text += "If you want to use this bot in a group, you can add me to your group by clicking the button below."
+        message_text += "If you want to use this bot in a group for auto quizzes, you can add me to your group by clicking the button below."
 
         # Create an inline keyboard with a button to add the bot to a group
         keyboard = [[InlineKeyboardButton("Add to Group", url=f"https://t.me/MetaXButlerBot?startgroup=start")]]
@@ -38,7 +38,7 @@ def start(update: Update, context: CallbackContext) -> None:
         if quiz_enabled:
             update.message.reply_text("Hi, I'm Alive!")
         else:
-            update.message.reply_text("Hi, I'm Alive! Please enable the quiz by using /enablequiz.")
+            update.message.reply_text("Hi, I'm Alive! Please enable the quiz by using /enablequiz. I will send a quiz every hour.")
 
 def enablequiz(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
