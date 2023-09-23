@@ -3,6 +3,7 @@ from telegram.ext import CallbackContext
 import psycopg2
 import configparser
 from telegram import ChatMember
+from .database import create_tables
 
 config = configparser.ConfigParser()
 config.read('config.ini')
