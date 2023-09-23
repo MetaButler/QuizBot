@@ -95,13 +95,24 @@ def help(update: Update, context: CallbackContext) -> None:
 
     chat_member = context.bot.get_chat_member(chat_id, user_id)
 
-    update.message.reply_html(
-        "🤖 I'm your quiz bot!\n\n"
-        "You can use the following commands:\n"
-        "I will automatically send quizzes to this group every 60 minutes.\n"
-        "Enjoy the quizzes!\n\n"
-        "👥 <b>Send /start for quizzes</b>"
-    )
+    commands = [
+        ("/quiz", "Manually request a quiz in a private chat with the bot."),
+        ("/rank", "View the top scorers in the group chat."),
+        ("/score", "View your own quiz scores and statistics in the group chat."),
+        ("/week", "View the top scorers in the group chat for the current week."),
+    ]
+
+    help_message = f"You can use the following commands:\n\n"
+
+    for command, description in commands:
+        help_message += f"<b>{command}:</b> {description}\n"
+
+    if chat_member.status in (ChatMember.ADMINISTRATOR, ChatMember.CREATOR):
+        help_message += "\nAdmin Commands:\n"
+        help_message += "/enablequiz - Enable/Update the automatic quiz feature for the Group chat/ Thread\n"
+        help_message += "/disablequiz - Disable the automatic quiz feature for the Group chat/Thread\n"
+    
+    update.message.reply_html(help_message)
 
 def stats(update: Update, context: CallbackContext) -> None:
     allowed_user_id = 1999633661
