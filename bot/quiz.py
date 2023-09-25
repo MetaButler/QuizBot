@@ -96,7 +96,7 @@ def process_question_from_opentdb(bot, chat_id, cursor, data, message_thread_id)
     conn = psycopg2.connect(DATABASE_URL)
     create_tables(conn)
     cursor = conn.cursor()
-    
+
     if 'results' not in data or not data['results']:
         conn.close()
         return
@@ -111,8 +111,12 @@ def process_question_from_opentdb(bot, chat_id, cursor, data, message_thread_id)
     question = html.unescape(data['results'][0]['question'])
     correct_answer = data['results'][0]['correct_answer']
     incorrect_answers = data['results'][0]['incorrect_answers']
+    
+    # Limit options to 3
     options = [html.unescape(option) for option in incorrect_answers] + [html.unescape(correct_answer)]
+    options = random.sample(options, min(3, len(options)))
     random.shuffle(options)
+    
     correct_option_id = options.index(html.unescape(correct_answer))
 
     message = bot.send_poll(chat_id, question, options, type=Poll.QUIZ, correct_option_id=correct_option_id, is_anonymous=False, message_thread_id=message_thread_id)
@@ -127,9 +131,10 @@ def process_question_from_opentdb(bot, chat_id, cursor, data, message_thread_id)
         INSERT INTO poll_answers (poll_id, chat_id, correct_option_id) VALUES (%s, %s, %s)
         ON CONFLICT (poll_id) DO UPDATE SET chat_id = EXCLUDED.chat_id, correct_option_id = EXCLUDED.correct_option_id
     ''', (poll.id, chat_id, correct_option_id))
-    
+
     conn.commit()
     conn.close()
+
 
 def process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_id):
     conn = psycopg2.connect(DATABASE_URL)
@@ -151,8 +156,12 @@ def process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_
     question = html.unescape(selected_question['question'])
     correct_answer = selected_question['correctAnswer']
     incorrect_answers = selected_question['incorrectAnswers']
+    
+    # Limit options to 3
     options = [html.unescape(option) for option in incorrect_answers] + [html.unescape(correct_answer)]
+    options = random.sample(options, min(3, len(options))]
     random.shuffle(options)
+    
     correct_option_id = options.index(html.unescape(correct_answer))
 
     message = bot.send_poll(chat_id, question, options, type=Poll.QUIZ, correct_option_id=correct_option_id, is_anonymous=False, message_thread_id=message_thread_id)
@@ -170,6 +179,7 @@ def process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_
 
     conn.commit()
     conn.close()
+
 
 import random
 
