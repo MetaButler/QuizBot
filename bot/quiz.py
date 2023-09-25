@@ -113,8 +113,9 @@ def process_question_from_opentdb(bot, chat_id, cursor, data, message_thread_id)
     incorrect_answers = data['results'][0]['incorrect_answers']
     
     # Limit options to 3
-    options = [html.unescape(option) for option in incorrect_answers] + [html.unescape(correct_answer)]
-    options = random.sample(options, min(3, len(options)))
+    options = [html.unescape(correct_answer)]  # Include the correct answer
+    incorrect_answers = [html.unescape(option) for option in incorrect_answers]
+    options.extend(random.sample(incorrect_answers, min(3, len(incorrect_answers))))  # Add 2 random incorrect options
     random.shuffle(options)
     
     correct_option_id = options.index(html.unescape(correct_answer))
@@ -158,8 +159,9 @@ def process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_
     incorrect_answers = selected_question['incorrectAnswers']
     
     # Limit options to 3
-    options = [html.unescape(option) for option in incorrect_answers] + [html.unescape(correct_answer)]
-    options = random.sample(options, min(3, len(options))]
+    options = [html.unescape(correct_answer)]  # Include the correct answer
+    incorrect_answers = [html.unescape(option) for option in incorrect_answers]
+    options.extend(random.sample(incorrect_answers, min(3, len(incorrect_answers))))  # Add 2 random incorrect options
     random.shuffle(options)
     
     correct_option_id = options.index(html.unescape(correct_answer))
