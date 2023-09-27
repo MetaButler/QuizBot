@@ -29,7 +29,7 @@ def quiz(update: Update, context: CallbackContext) -> None:
     try:
         use_trivia_api = random.choice([True, False]) 
         if use_trivia_api:
-            api_url = 'https://the-trivia-api.com/api/questions/'
+            api_url = 'https://the-trivia-api.com/v2/questions'
         else:
             api_url = 'https://opentdb.com/api.php?amount=1'
 
@@ -49,7 +49,7 @@ def quiz(update: Update, context: CallbackContext) -> None:
             incorrect_answers = [html.unescape(option) for option in data['results'][0]['incorrect_answers']]
         elif use_trivia_api and data and isinstance(data, list):
             selected_question = random.choice(data)
-            question = selected_question.get('question', "")
+            question = selected_question.get('question', {}).get('text', "")
             correct_answer = selected_question.get('correctAnswer', "")
             incorrect_answers = [html.unescape(option) for option in selected_question.get('incorrectAnswers', [])]
 
@@ -83,7 +83,7 @@ def fetch_question_from_opentdb():
     return data
 
 def fetch_question_from_trivia_api():
-    api_url = 'https://the-trivia-api.com/api/questions/'
+    api_url = 'https://the-trivia-api.com/v2/questions'
     response = requests.get(api_url)
     data = response.json()
     return data
@@ -150,7 +150,7 @@ def process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_
         conn.close()
         return
 
-    question = html.unescape(selected_question['question'])
+    question = html.unescape(selected_question['question']['text'])
     correct_answer = selected_question['correctAnswer']
     incorrect_answers = selected_question['incorrectAnswers']
     
