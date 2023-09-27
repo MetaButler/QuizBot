@@ -42,25 +42,21 @@ def quiz(update: Update, context: CallbackContext) -> None:
 
         correct_answer = ""
         question = ""
+        incorrect_answers = []
         if not use_trivia_api and 'results' in data and data['results']:
             question = html.unescape(data['results'][0]['question'])
             correct_answer = html.unescape(data['results'][0]['correct_answer'])
+            incorrect_answers = [html.unescape(option) for option in data['results'][0]['incorrect_answers']]
         elif use_trivia_api and data and isinstance(data, list):
             selected_question = random.choice(data)
             question = selected_question.get('question', "")
             correct_answer = selected_question.get('correctAnswer', "")
+            incorrect_answers = [html.unescape(option) for option in selected_question.get('incorrectAnswers', [])]
 
-        if not question or not correct_answer:
+        if not question or not correct_answer or not incorrect_answers:
             logger.warning("No quiz questions found from the API.")
             update.message.reply_text("No quiz questions found from the API.")
             return
-
-        incorrect_answers = []
-        if not use_trivia_api and 'results' in data and data['results']:
-            incorrect_answers = [html.unescape(option) for option in data['results'][0]['incorrect_answers']]
-        elif use_trivia_api and data and isinstance(data, list):
-            selected_question = random.choice(data)
-            incorrect_answers = [html.unescape(option) for option in selected_question.get('incorrectAnswers', [])]
 
         options = random.sample(incorrect_answers, min(3, len(incorrect_answers)))
         options.append(correct_answer)

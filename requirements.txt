@@ -1,4 +1,4 @@
-apscheduler==3.10.4
+apscheduler
 matplotlib==3.8.0
 numpy==1.26.0
 prettytable==3.9.0
