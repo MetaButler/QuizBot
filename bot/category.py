@@ -33,7 +33,23 @@ def fetch_category_names():
         logging.error(f"Error fetching category names: {e}")
         return []
 
-def paginate_category_names(category_names, page, page_size=10):
+def get_chat_ids_in_group_preferences():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT chat_id FROM group_preferences")
+        chat_ids = [row[0] for row in cursor.fetchall()]
+
+        return chat_ids
+    except psycopg2.Error as e:
+        logging.error(f"Error fetching chat_ids in group preferences: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def paginate_category_names(category_names, page, chat_id, page_size=10):
     start_idx = (page - 1) * page_size
     end_idx = start_idx + page_size
     paginated_names = category_names[start_idx:end_idx]
@@ -44,6 +60,11 @@ def paginate_category_names(category_names, page, page_size=10):
         row = []
         for j in range(i, min(i + 2, len(paginated_names))):
             name = paginated_names[j]
+
+            # Check whether this button should be marked
+            if chat_id in group_button_states and name in group_button_states[chat_id]:
+                name = "✅ " + name
+
             button = InlineKeyboardButton(text=name, callback_data=name)
             row.append(button)
         keyboard.append(row)
@@ -81,36 +102,38 @@ def topics(update: Update, context: CallbackContext) -> None:
 
     context.user_data['page'] = 1
 
-    keyboard = paginate_category_names(category_names, page=1)
+    keyboard = paginate_category_names(category_names, page=1, chat_id=chat_id)
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text("Select a category:", reply_markup=reply_markup)
 
-def get_chat_ids_in_group_preferences():
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT chat_id FROM group_preferences")
-        chat_ids = [row[0] for row in cursor.fetchall()]
-
-        return chat_ids
-    except psycopg2.Error as e:
-        logging.error(f"Error fetching chat_ids in group preferences: {e}")
-        return []
-    finally:
-        cursor.close()
-        conn.close()
+group_button_states = {}
 
 def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     chat_id = query.message.chat_id
     category_name = query.data
 
+    # When a button is clicked, save its state
+    if category_name not in ["clear", "next_page", "prev_page", "done"]:
+        if chat_id not in group_button_states:
+            group_button_states[chat_id] = {}
+        group_button_states[chat_id][category_name] = True
+
     if category_name == "clear":
         context.user_data.pop('trivia_topics', None)
         context.user_data.pop('opentdb_topics', None)
         update_database(chat_id, None, None)
+
+        # Clear the tick boxes for this chat immediately
+        if chat_id in group_button_states:
+            del group_button_states[chat_id]
+
+        # Regenerate the category buttons with cleared tick boxes
+        category_names = fetch_category_names()
+        keyboard = paginate_category_names(category_names, page=1, chat_id=chat_id)
+
+        query.edit_message_text(text="Select a category:", reply_markup=InlineKeyboardMarkup(keyboard))
 
         query.answer("Selection cleared.")
     elif category_name == "next_page":
@@ -144,9 +167,21 @@ def button(update: Update, context: CallbackContext) -> None:
 
             update_database(chat_id, context.user_data.get('trivia_topics', ''), context.user_data.get('opentdb_topics', ''))
 
+            updated_category_name = "✅ " + category_name
+
+            for row in query.message.reply_markup.inline_keyboard:
+                for button in row:
+                    if button.callback_data == category_name:
+                        button.text = updated_category_name
+                        break
+
+            query.edit_message_text("Select a category:", reply_markup=query.message.reply_markup)
+
             query.answer(f"You selected: {category_name}")
         else:
             query.answer("Failed to fetch category_id.")
+
+
 
 def done(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
@@ -174,7 +209,7 @@ def prev_page(update: Update, context: CallbackContext) -> None:
             query.answer("Failed to fetch category names.")
             return
 
-        keyboard = paginate_category_names(category_names, page=current_page)
+        keyboard = paginate_category_names(category_names, page=current_page, chat_id=chat_id)
 
         query.edit_message_text(text="Select a category:", reply_markup=InlineKeyboardMarkup(keyboard))
     else:
@@ -264,7 +299,7 @@ def next_page(update: Update, context: CallbackContext) -> None:
             query.answer("Failed to fetch category names.")
             return
 
-        keyboard = paginate_category_names(category_names, page=current_page)
+        keyboard = paginate_category_names(category_names, page=current_page, chat_id=chat_id)
 
         query.edit_message_text(text="Select a category:", reply_markup=InlineKeyboardMarkup(keyboard))
     else:
