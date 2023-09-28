@@ -2,12 +2,13 @@ from telegram.ext import CommandHandler, PollAnswerHandler, Filters
 from telegram import Update, Chat
 from telegram.ext import Updater, CallbackContext, CallbackQueryHandler
 from .helpers import start, help, stats, enablequiz, disablequiz
+
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 import psycopg2
 from .quiz import quiz, send_auto_question
 from .category import topics, next_page, button
-from .database import create_tables
+from .database import create_tables, fetch_opentdb_categories, fetch_the_trivia_categories, insert_categories_into_topics
 from .score import reset_weekly_scores, log_user_response, rank, score, score_dm_total, weekly_rank
 import configparser
 
@@ -40,6 +41,16 @@ def main() -> None:
     try:
         conn = psycopg2.connect(DATABASE_URL)
         create_tables(conn)
+
+        opentdb_api_url = "https://opentdb.com/api_category.php"
+        the_trivia_api_url = "https://the-trivia-api.com/v2/categories"
+
+        opentdb_categories = fetch_opentdb_categories(opentdb_api_url)
+        the_trivia_categories = fetch_the_trivia_categories(the_trivia_api_url)
+
+        merged_categories = opentdb_categories + the_trivia_categories
+        insert_categories_into_topics(merged_categories)
+
         conn.close()
         print("Database tables created successfully.")
     except Exception as e:
@@ -58,3 +69,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+
