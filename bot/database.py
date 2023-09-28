@@ -11,6 +11,8 @@ def create_tables(conn):
         CREATE TABLE IF NOT EXISTS group_preferences (
             chat_id BIGINT PRIMARY KEY,
             send_questions BOOLEAN DEFAULT TRUE,
+            trivia_topics TEXT,
+            opentdb_topics TEXT,
             message_thread_id BIGINT
         )
     ''')

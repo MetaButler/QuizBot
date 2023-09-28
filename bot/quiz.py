@@ -2,8 +2,9 @@ import random
 import html
 import requests
 import psycopg2
-from telegram import Update, Poll, Chat
-from telegram.ext import CallbackContext
+from telegram import Update, Poll, Chat, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
+
 import logging
 import configparser
 from .database import create_tables
@@ -76,14 +77,22 @@ def quiz(update: Update, context: CallbackContext) -> None:
         logger.error(f"Failed to fetch quiz questions: {e}")
         update.message.reply_text("Failed to fetch quiz questions. Please try again later.")
         
-def fetch_question_from_opentdb():
-    api_url = f'https://opentdb.com/api.php?amount=1'
+def fetch_question_from_opentdb(category=None):
+    if category:
+        api_url = f'https://opentdb.com/api.php?amount=1&category={category}'
+    else:
+        api_url = f'https://opentdb.com/api.php?amount=1'
+
     response = requests.get(api_url)
     data = response.json()
     return data
 
-def fetch_question_from_trivia_api():
-    api_url = 'https://the-trivia-api.com/v2/questions'
+def fetch_question_from_trivia_api(category=None):
+    if category:
+        api_url = f'https://the-trivia-api.com/v2/questions?categories={category}'
+    else:
+        api_url = 'https://the-trivia-api.com/v2/questions'
+
     response = requests.get(api_url)
     data = response.json()
     return data
@@ -108,10 +117,9 @@ def process_question_from_opentdb(bot, chat_id, cursor, data, message_thread_id)
     correct_answer = data['results'][0]['correct_answer']
     incorrect_answers = data['results'][0]['incorrect_answers']
     
-    # Limit options to 3
-    options = [html.unescape(correct_answer)]  # Include the correct answer
+    options = [html.unescape(correct_answer)]
     incorrect_answers = [html.unescape(option) for option in incorrect_answers]
-    options.extend(random.sample(incorrect_answers, min(3, len(incorrect_answers))))  # Add 2 random incorrect options
+    options.extend(random.sample(incorrect_answers, min(3, len(incorrect_answers))))
     random.shuffle(options)
     
     correct_option_id = options.index(html.unescape(correct_answer))
@@ -154,10 +162,9 @@ def process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_
     correct_answer = selected_question['correctAnswer']
     incorrect_answers = selected_question['incorrectAnswers']
     
-    # Limit options to 3
-    options = [html.unescape(correct_answer)]  # Include the correct answer
+    options = [html.unescape(correct_answer)]
     incorrect_answers = [html.unescape(option) for option in incorrect_answers]
-    options.extend(random.sample(incorrect_answers, min(3, len(incorrect_answers))))  # Add 2 random incorrect options
+    options.extend(random.sample(incorrect_answers, min(3, len(incorrect_answers))))
     random.shuffle(options)
     
     correct_option_id = options.index(html.unescape(correct_answer))
@@ -179,8 +186,6 @@ def process_question_from_trivia_api(bot, chat_id, cursor, data, message_thread_
     conn.close()
 
 
-import random
-
 def auto(bot, chat_id, cursor, message_thread_id):
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -195,7 +200,16 @@ def auto(bot, chat_id, cursor, message_thread_id):
 
             if use_trivia_api:
                 if total_retries // 2 < max_retries:
-                    data = fetch_question_from_trivia_api()
+                    cursor.execute("SELECT trivia_topics FROM group_preferences WHERE chat_id=%s", (chat_id,))
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        categories = row[0].split(',')
+                        category = random.choice(categories)
+                        logger.info(f"Selected category for Trivia API: {category}")
+                    else:
+                        category = None
+
+                    data = fetch_question_from_trivia_api(category)
                     if data and isinstance(data, list) and data:
                         selected_question = random.choice(data)
                         question_id = selected_question['id']
@@ -213,7 +227,16 @@ def auto(bot, chat_id, cursor, message_thread_id):
                     logger.warning("Exceeded Trivia API retry limit")
             else:
                 if total_retries // 2 < max_retries:
-                    data = fetch_question_from_opentdb()
+                    cursor.execute("SELECT opentdb_topics FROM group_preferences WHERE chat_id=%s", (chat_id,))
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        categories = row[0].split(',')
+                        category = random.choice(categories)
+                        logger.info(f"Selected category for OpenTDB: {category}")
+                    else:
+                        category = None
+
+                    data = fetch_question_from_opentdb(category)
                     if data and 'results' in data and data['results']:
                         question_id = data['results'][0]['question']
                         cursor.execute("SELECT 1 FROM sent_questions WHERE chat_id=%s AND question_id=%s", (chat_id, question_id))
@@ -233,12 +256,13 @@ def auto(bot, chat_id, cursor, message_thread_id):
 
         bot.send_message(chat_id, "Sorry, No new question found")
         logger.warning("No new question found after retries")
-        
+
     except Exception as e:
         logger.error(f"An error occurred: {e}")
     finally:
         cursor.close()
         conn.close()
+
 
 
 def send_auto_question(bot, context):
@@ -258,4 +282,3 @@ def send_auto_question(bot, context):
             auto(bot, chat_id, cursor, chat_id)
 
     conn.close()
- 

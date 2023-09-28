@@ -1,11 +1,12 @@
 from telegram.ext import CommandHandler, PollAnswerHandler, Filters
 from telegram import Update, Chat
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Updater, CallbackContext, CallbackQueryHandler
 from .helpers import start, help, stats, enablequiz, disablequiz
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 import psycopg2
 from .quiz import quiz, send_auto_question
+from .category import topics, next_page, button
 from .database import create_tables
 from .score import reset_weekly_scores, log_user_response, rank, score, score_dm_total, weekly_rank
 import configparser
@@ -32,6 +33,9 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("week", weekly_rank))
     dispatcher.add_handler(CommandHandler("enablequiz", enablequiz, Filters.chat_type.groups))
     dispatcher.add_handler(CommandHandler("disablequiz", disablequiz, Filters.chat_type.groups))
+    dispatcher.add_handler(CommandHandler("topics", topics))
+    dispatcher.add_handler(CallbackQueryHandler(button))
+    dispatcher.add_handler(CommandHandler("next", next_page))
 
     try:
         conn = psycopg2.connect(DATABASE_URL)
