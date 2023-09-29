@@ -16,6 +16,7 @@ sqlalchemy = "==2.0.21"
 pyyaml = "==6.0.1"
 
 [dev-packages]
+yapf = "*"
 
 [requires]
 python_version = "3.11"
