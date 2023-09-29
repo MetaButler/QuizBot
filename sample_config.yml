@@ -1,0 +1,6 @@
+telegram:
+  bot_token: 
+  authorized_ids:
+    - 
+database:
+  schema: 

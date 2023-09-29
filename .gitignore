@@ -1,3 +1,5 @@
-Pipfile*
-config.ini
-venv/
+*.db
+*.session
+*.session-journal
+config.yml
+**/__pycache__/

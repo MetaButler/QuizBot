@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+apscheduler = "*"
+matplotlib = "==3.8.0"
+numpy = "==1.26.0"
+prettytable = "==3.9.0"
+psycopg2 = "==2.9.7"
+pytz = "==2023.3.post1"
+requests = "==2.31.0"
+python-telegram-bot = {version = "==20.5", extras = ["all"]}
+sqlalchemy = "==2.0.21"
+pyyaml = "==6.0.1"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
+python_full_version = "3.11.5"
