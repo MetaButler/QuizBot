@@ -42,6 +42,7 @@ def fetch_the_trivia_categories(API_URL_TRIVIA: str) -> List[Dict[str, str]]:
         return []
 
 def insert_categories_into_topics(categories: List[Dict[str, str]]) -> None:
+    inserted_count = 0
     try:
         session = Session()
         for category in categories:
@@ -49,6 +50,7 @@ def insert_categories_into_topics(categories: List[Dict[str, str]]) -> None:
             source = category["source"]
             existing_topic = session.query(Topic).filter_by(category_id=category_id, source=source).first()
             if not existing_topic:
+                inserted_count += 1
                 new_topic = Topic(
                     category_id=category_id,
                     category_name=category["category_name"],
@@ -56,7 +58,8 @@ def insert_categories_into_topics(categories: List[Dict[str, str]]) -> None:
                 )
                 session.add(new_topic)
         session.commit()
-        print(f"Inserted {len(categories)} categories into the 'topics' table.")
+        if inserted_count:
+            print(f"Inserted {inserted_count} categories into the 'topics' table.")
     except IntegrityError as e:
         session.rollback()
         print(f"IntegrityError: {e}")
