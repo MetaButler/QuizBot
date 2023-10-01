@@ -44,8 +44,8 @@ async def enablequiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             allow_sending_without_reply=True
         )
         return
+    session = Session()
     try:
-        session = Session()
         group_preferences = session.query(GroupPreference).filter_by(chat_id=chat.id).first()
         if not group_preferences:
             group_preference = GroupPreference(chat_id=chat.id, send_questions=True, message_thread_id=message.message_thread_id)
@@ -99,8 +99,8 @@ async def disablequiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             allow_sending_without_reply=True
         )
         return
+    session = Session()
     try:
-        session = Session()
         group_preference = session.query(GroupPreference).filter_by(chat_id=chat.id).first()
         if group_preference.send_questions:
             group_preference.send_questions = False
@@ -152,8 +152,8 @@ async def quizstatus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             quote=True
         )
         return
+    session = Session()
     try:
-        session = Session()
         group_preference = session.query(GroupPreference).filter_by(chat_id=chat.id).first()
         if not group_preference:
             message_text = "Quiz is not enabled in this group\n\nYou can enable quizzes with: /enablequiz"
