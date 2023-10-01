@@ -1,5 +1,5 @@
 from bot.helpers.yaml import load_config
-from bot.commands import start
+from bot.modules.misc.commands import start
 from typing import Final, List
 from sqlalchemy import create_engine
 from telegram.ext import ApplicationBuilder, CommandHandler
