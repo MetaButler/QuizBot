@@ -1,5 +1,6 @@
 from bot.helpers.yaml import load_config
-from bot.modules.misc.commands import start
+from bot.modules.misc.commands import start, help
+from bot.modules.quiz.commands import enablequiz, disablequiz, quizstatus
 from typing import Final, List
 from sqlalchemy import create_engine
 from telegram.ext import ApplicationBuilder, CommandHandler
@@ -19,6 +20,14 @@ application = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # Handlers
 start_handler = CommandHandler('start', start)
+help_handler = CommandHandler('help', help)
+enablequiz_handler = CommandHandler('enablequiz', enablequiz)
+disablequiz_handler = CommandHandler('disablequiz', disablequiz)
+quizstatus_handler = CommandHandler('quizstatus', quizstatus)
 
 # Add Handlers
 application.add_handler(start_handler)
+application.add_handler(help_handler)
+application.add_handler(enablequiz_handler)
+application.add_handler(disablequiz_handler)
+application.add_handler(quizstatus_handler)
