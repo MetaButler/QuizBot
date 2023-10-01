@@ -12,7 +12,6 @@ db_config = load_config("config.yml")["database"]
 # Constants
 DB_SCHEMA: Final[str] = db_config.get("schema")
 BOT_TOKEN: Final[str] = telegram_config.get("bot_token")
-AUTHORIZED_IDS: Final[List[int]] = [int(telegram_id) for telegram_id in telegram_config["authorized_ids"]]
 
 # Builders
 db_engine = create_engine(DB_SCHEMA)
