@@ -1,4 +1,4 @@
-from bot.database.models import UserScore, WeeklyScore
+from bot.database.models import UserScore, WeeklyScore, PollAnswer
 from sqlalchemy.orm import sessionmaker
 from bot.helpers.yaml import load_config
 from typing import Final
@@ -94,3 +94,54 @@ async def get_user_total_score(user_id: int):
     except Exception as ex:
         print(f'Error fetching user\'s total scores: {ex}')
         return (None, None, None)
+    
+async def get_poll_answer_record(poll_id: str):
+    session = Session()
+    try:
+        poll_answer_record = session.query(PollAnswer.chat_id, PollAnswer.correct_option_id).filter_by(poll_id=poll_id).first()
+        session.close()
+        return poll_answer_record
+    except Exception as e:
+        print(f"Error in get_poll_answer_record function: {e}")
+        return None
+    
+async def update_user_scores(user_id: int, poll_id: str, option_id: int):
+    session = Session()
+    poll_answer_record = await get_poll_answer_record(poll_id=poll_id)
+    if poll_answer_record:
+        chat_id, correct_option_id = poll_answer_record
+    try:
+        if correct_option_id == option_id:
+            user_score = session.query(UserScore).filter_by(user_id=user_id, chat_id=chat_id).first()
+            weekly_score = session.query(WeeklyScore).filter_by(user_id=user_id, chat_id=chat_id).first()
+            if user_score:
+                user_score.score += 1
+                user_score.correct_answers += 1
+            else:
+                user_score = UserScore(user_id=user_id, chat_id=chat_id, score=1, correct_answers=1)
+                session.add(user_score)
+            if weekly_score:
+                weekly_score.score += 1
+                weekly_score.correct_answers += 1
+            else:
+                weekly_score = WeeklyScore(user_id=user_id, chat_id=chat_id, score=1, correct_answers=1)
+                session.add(weekly_score)
+        else:
+            user_score = session.query(UserScore).filter_by(user_id=user_id, chat_id=chat_id).first()
+            weekly_score = session.query(WeeklyScore).filter_by(user_id=user_id, chat_id=chat_id).first()
+            if user_score:
+                user_score.score -= 0.5
+                user_score.wrong_answers += 1
+            else:
+                user_score = UserScore(user_id=user_id, chat_id=chat_id, score=-0.5, wrong_answers=1)
+                session.add(user_score)
+            if weekly_score:
+                weekly_score.score -= 0.5
+                weekly_score.wrong_answers += 1
+            else:
+                weekly_score = WeeklyScore(user_id=user_id, chat_id=chat_id, score=-0.5, wrong_answers=1)
+                session.add(weekly_score)
+        session.commit()
+        session.close()
+    except Exception as e:
+        print(f"Error in update_user_scores function: {e}")
