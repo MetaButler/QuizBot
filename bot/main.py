@@ -1,6 +1,7 @@
 from bot.helpers.yaml import load_config
 from bot.modules.misc.commands import start, help, stats
 from bot.modules.quiz.commands import enablequiz, disablequiz, quizstatus, quiz
+from bot.modules.quiz.callbacks import send_auto_question
 from bot.modules.scores.commands import rank, weekly_rank, score, scores_dm
 from bot.modules.scores.callbacks import handle_score_button, log_user_response
 from typing import Final
@@ -48,3 +49,14 @@ application.add_handler(scores_dm_handler)
 application.add_handler(handle_score_button_handler)
 application.add_handler(quiz_handler)
 application.add_handler(poll_answer_handler)
+
+# Job Queueing
+job_queue = application.job_queue
+job_queue.run_once(
+    callback=send_auto_question,
+    when=5,
+)
+job_queue.run_repeating(
+    callback=send_auto_question,
+    interval=3600,
+)

@@ -39,11 +39,10 @@ def fetch_the_trivia_categories(API_URL_TRIVIA: str) -> List[Dict[str, str]]:
     
 async def fetch_question(category=None, trivia_api=False):
     base_url = 'https://opentdb.com/api.php' if not trivia_api else 'https://the-trivia-api.com/v2/questions'
+    params = dict()
     if trivia_api:
         if category:
             params['categories'] = category
-        else:
-            params = {}
     else:
         params['amount'] = 1
         if category:

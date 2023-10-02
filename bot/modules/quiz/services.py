@@ -28,12 +28,12 @@ def is_quiz_enabled(chat_id: int) -> bool:
     finally:
         session.close()
 
-async def insert_question_into_db(chat_id, question_id, correct_option_id):
+async def insert_question_into_db(chat_id, question_id, correct_option_id, poll_id):
     session = Session()
     try:
         sent_question = SentQuestion(chat_id=chat_id, question_id=question_id)
         session.add(sent_question)
-        poll_answer = PollAnswer(poll_id=question_id, chat_id=chat_id, correct_option_id=correct_option_id)
+        poll_answer = PollAnswer(poll_id=poll_id, chat_id=chat_id, correct_option_id=correct_option_id)
         session.merge(poll_answer)
         session.commit()
     except Exception as e:

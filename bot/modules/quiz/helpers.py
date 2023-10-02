@@ -1,7 +1,6 @@
 from telegram.ext import ContextTypes
 from telegram import Poll
 from bot.modules.quiz.services import Session, get_random_opentdb_category, get_random_trivia_category
-import html
 import random
 from bot.modules.quiz.services import insert_question_into_db, is_question_sent
 from bot.helpers.http import fetch_question, process_opentdb_api_data, process_trivia_api_data
@@ -10,7 +9,7 @@ async def process_question_from_opentdb(context: ContextTypes.DEFAULT_TYPE, chat
     if 'results' not in data or not data['results']:
         return
     question_data = await process_opentdb_api_data(data)
-    poll_id = await context.bot.send_poll(
+    poll_message = await context.bot.send_poll(
         chat_id=chat_id,
         question=question_data['question'],
         options=question_data['options'],
@@ -19,14 +18,14 @@ async def process_question_from_opentdb(context: ContextTypes.DEFAULT_TYPE, chat
         is_anonymous=False,
         type=Poll.QUIZ
     )
-    if poll_id:
-        insert_question_into_db(chat_id, question_data['question_id'], question_data['correct_option_id'])
+    if poll_message:
+        await insert_question_into_db(chat_id, question_data['question_id'], question_data['correct_option_id'], poll_message.poll.id)
 
 async def process_question_from_trivia_api(context: ContextTypes.DEFAULT_TYPE, chat_id: int, data: list, message_thread_id: int):
     if not data or not isinstance(data, list):
         return
     question_data = await process_trivia_api_data(data)
-    poll_id = await context.bot.send_poll(
+    poll_message = await context.bot.send_poll(
         chat_id=chat_id,
         question=question_data['question'],
         options=question_data['options'],
@@ -35,11 +34,10 @@ async def process_question_from_trivia_api(context: ContextTypes.DEFAULT_TYPE, c
         is_anonymous=False,
         type=Poll.QUIZ
     )
-    if poll_id:
-        insert_question_into_db(chat_id, question_data['question_id'], question_data['correct_option_id'])
+    if poll_message:
+        await insert_question_into_db(chat_id, question_data['question_id'], question_data['correct_option_id'], poll_message.poll.id)
 
 async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_id):
-    session = Session()
     try:
         total_retries = 0
         max_retries = 3
@@ -47,13 +45,13 @@ async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_
             use_trivia_api = random.choice([True, False])
             if use_trivia_api:
                 if total_retries // 2 < max_retries:
-                    category = get_random_trivia_category(session, chat_id)
-                    data = fetch_question(category, True)
+                    category = get_random_trivia_category(chat_id)
+                    data = await fetch_question(category, True)
                     if data and isinstance(data, list) and data:
                         selected_question = random.choice(data)
                         question_id = selected_question['id']
-                        if not is_question_sent(session, chat_id, question_id):
-                            process_question_from_trivia_api(context, chat_id, data, message_thread_id)
+                        if not is_question_sent(chat_id, question_id):
+                            await process_question_from_trivia_api(context, chat_id, data, message_thread_id)
                             return
                     else:
                         print("Failed to fetch a question from Trivia API")
@@ -61,12 +59,12 @@ async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_
                     print("Exceeded Trivia API retry limit")
             else:
                 if total_retries // 2 < max_retries:
-                    category = get_random_opentdb_category(session, chat_id)
-                    data = fetch_question(category, False)
+                    category = get_random_opentdb_category(chat_id)
+                    data = await fetch_question(category, False)
                     if data and 'results' in data and data['results']:
                         question_id = data['results'][0]['question']
-                        if not is_question_sent(session, chat_id, question_id):
-                            process_question_from_opentdb(context, chat_id, data, message_thread_id)
+                        if not is_question_sent(chat_id, question_id):
+                            await process_question_from_opentdb(context, chat_id, data, message_thread_id)
                             return
                     else:
                         print("Failed to fetch a question from OpenTDB")
