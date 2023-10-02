@@ -1,6 +1,7 @@
 from bot.main import application, db_engine
 from bot.database.models import Base
-from bot.helpers.http import fetch_opentdb_categories, fetch_the_trivia_categories, insert_categories_into_topics
+from bot.helpers.http import fetch_opentdb_categories, fetch_the_trivia_categories
+from bot.helpers.services import insert_categories_into_topics
 from typing import Final
 
 OPENTDB_API_URL: Final[str] = "https://opentdb.com/api_category.php"

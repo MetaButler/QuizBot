@@ -3,8 +3,9 @@ from sqlalchemy.orm import sessionmaker
 from bot.helpers.yaml import load_config
 from typing import Final
 from sqlalchemy import create_engine
-from telegram import Update, ChatMember
+from telegram import Update, ChatMember, Poll
 from telegram.ext import ContextTypes
+from bot.helpers.http import fetch_quiz_question
 
 # YAML Loader
 db_config = load_config("config.yml")["database"]
@@ -178,3 +179,39 @@ async def quizstatus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         print(f'Exception occurred in quizstatus: {ex}')
     finally:
         session.close()
+
+async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat = update.effective_chat
+    message = update.effective_message
+
+    if chat.type != "private":
+        await message.reply_text(
+            text="This command can only be used in private chats!",
+            allow_sending_without_reply=True,
+            quote=True,
+            reply_to_message_id=message.id
+        )
+        return
+    await context.bot.send_chat_action(
+        chat_id=chat.id,
+        action='typing'
+    )
+    quiz_data = await fetch_quiz_question()
+    if quiz_data:
+        question = quiz_data["question"]
+        options = quiz_data["options"]
+        correct_option_id = quiz_data["correct_option_id"]
+        await message.reply_poll(
+            question=question,
+            options=options,
+            is_anonymous=False,
+            correct_option_id=correct_option_id,
+            type=Poll.QUIZ,
+        )
+    else:
+        await message.reply_text(
+            text="Failed to fetch quiz questions. Please try again later.",
+            allow_sending_without_reply=True,
+            quote=True,
+            reply_to_message_id=message.id
+        )
