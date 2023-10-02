@@ -4,3 +4,4 @@ telegram:
     - 
 database:
   schema: 
+broadcast:
