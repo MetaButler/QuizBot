@@ -11,6 +11,7 @@ class GroupPreference(Base):
     trivia_topics = Column(Text)
     opentdb_topics = Column(Text)
     message_thread_id = Column(BigInteger)
+    settings = Column(JSON, nullable=True)
 
 class PollAnswer(Base):
     __tablename__ = 'poll_answers'
