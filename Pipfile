@@ -4,19 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-apscheduler = "*"
+python-telegram-bot = {extras = ["all"], version = "==20.6"}
 matplotlib = "==3.8.0"
-numpy = "==1.26.0"
-psycopg2 = "==2.9.7"
-pytz = "==2023.3.post1"
-requests = "==2.31.0"
-python-telegram-bot = {version = "==20.5", extras = ["all"]}
-sqlalchemy = "==2.0.21"
 pyyaml = "==6.0.1"
+sqlalchemy = "==2.0.21"
+pytz = "==2023.3.post1"
 
 [dev-packages]
-yapf = "*"
 
 [requires]
-python_version = "3.11"
-python_full_version = "3.11.5"
+python_version = "3.12"
+python_full_version = "3.12.0"
