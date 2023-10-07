@@ -176,16 +176,21 @@ async def scores_dm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         return
     else:
+        correct_color = 'lightgreen'
+        wrong_color = 'lightcoral'
         total_accuracy = (total_correct_answers / (total_correct_answers + total_wrong_answers)) * 100 if total_correct_answers + total_wrong_answers > 0 else 0
         labels = ['Correct Answers', 'Wrong Answers']
         values = [total_correct_answers, total_wrong_answers]
         fig, ax = plt.subplots()
-        ax.bar(labels, values)
+        ax.bar(labels, values, color=[correct_color, wrong_color])
         ax.set_xlabel('Category')
         ax.set_ylabel('Count')
         ax.set_title('Total Answers Distribution')
         for i, value in enumerate(values):
             ax.text(i, value, str(value), ha='center', va='bottom')
+        legend_labels = ['Correct Answers', 'Wrong Answers']
+        legend_colors = [plt.Rectangle((0, 0), 1, 1, color=color) for color in [correct_color, wrong_color]]
+        ax.legend(legend_colors, legend_labels)
         caption = f"Total Score Across Chats: {total_score}\nAccuracy: {total_accuracy:.2f}%"
         buffer = io.BytesIO()
         plt.savefig(buffer, format='png')
