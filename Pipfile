@@ -9,8 +9,10 @@ matplotlib = "==3.8.0"
 pyyaml = "==6.0.1"
 sqlalchemy = "==2.0.21"
 pytz = "==2023.3.post1"
+alembic = "==1.12.0"
 
 [dev-packages]
+yapf = "*"
 
 [requires]
 python_version = "3.12"
