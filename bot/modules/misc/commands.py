@@ -67,6 +67,11 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             'admin_only': False,
             'dev_only': False,
         },
+        'settings': {
+            'description': 'Change the user\'s settings on a global level',
+            'admin_only': False,
+            'dev_only': False,
+        },
         'enablequiz': {
             'description': 'Enable/Update the automatic quiz feature for the Group chat/Thread',
             'admin_only': True,

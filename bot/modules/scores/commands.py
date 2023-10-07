@@ -1,6 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from bot.modules.scores.services import get_top_scores, get_top_weekly_scores, get_user_score, get_user_total_score
+from bot.modules.scores.services import get_top_scores, get_top_weekly_scores, get_user_score, get_user_total_score, create_answers_distribution_plot
+from bot.modules.settings.services import get_user_global_config
 import matplotlib.pyplot as plt
 import io
 
@@ -176,25 +177,13 @@ async def scores_dm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         return
     else:
-        correct_color = 'lightgreen'
-        wrong_color = 'lightcoral'
-        total_accuracy = (total_correct_answers / (total_correct_answers + total_wrong_answers)) * 100 if total_correct_answers + total_wrong_answers > 0 else 0
-        labels = ['Correct Answers', 'Wrong Answers']
-        values = [total_correct_answers, total_wrong_answers]
-        fig, ax = plt.subplots()
-        ax.bar(labels, values, color=[correct_color, wrong_color])
-        ax.set_xlabel('Category')
-        ax.set_ylabel('Count')
-        ax.set_title('Total Answers Distribution')
-        for i, value in enumerate(values):
-            ax.text(i, value, str(value), ha='center', va='bottom')
-        legend_labels = ['Correct Answers', 'Wrong Answers']
-        legend_colors = [plt.Rectangle((0, 0), 1, 1, color=color) for color in [correct_color, wrong_color]]
-        ax.legend(legend_colors, legend_labels)
-        caption = f"Total Score Across Chats: {total_score}\nAccuracy: {total_accuracy:.2f}%"
-        buffer = io.BytesIO()
-        plt.savefig(buffer, format='png')
-        buffer.seek(0)
+        user_settings = await get_user_global_config(user_id=user.id)
+        ui_settings = user_settings.get("ui")
+        if ui_settings == 'dark':
+            dark_mode = True
+        else:
+            dark_mode = False
+        caption, buffer = create_answers_distribution_plot(total_correct_answers=total_correct_answers, total_wrong_answers=total_wrong_answers, total_score=total_score, dark_mode=dark_mode)
         await message.reply_photo(
             photo=io.BufferedReader(buffer),
             caption=caption,

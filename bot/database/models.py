@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, BigInteger, Boolean, Text, String, Float, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, BigInteger, Boolean, Text, String, Float, ForeignKey, UniqueConstraint, JSON
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -53,3 +53,9 @@ class Topic(Base):
     category_id = Column(String, primary_key=True)
     category_name = Column(String, nullable=False)
     source = Column(String, primary_key=True)
+
+class UserPreferences(Base):
+    __tablename__ = 'user_preferences'
+
+    user_id = Column(Integer, primary_key=True, unique=True, nullable=False)
+    settings = Column(JSON, nullable=True)

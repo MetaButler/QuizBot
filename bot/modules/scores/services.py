@@ -1,8 +1,11 @@
-from bot.database.models import UserScore, WeeklyScore, PollAnswer
+from bot.database.models import UserScore, WeeklyScore, PollAnswer, UserPreferences
 from sqlalchemy.orm import sessionmaker
 from bot.helpers.yaml import load_config
-from typing import Final
-from sqlalchemy import create_engine, desc, func
+from typing import Final, Tuple
+from sqlalchemy import create_engine, desc, func, cast, String
+import io
+from io import BytesIO
+import matplotlib.pyplot as plt
 
 # YAML Loader
 db_config = load_config("config.yml")["database"]
@@ -19,6 +22,8 @@ async def get_top_scores(chat_id, limit=5):
         top_scores = (
             session.query(UserScore.user_id, UserScore.score)
             .filter_by(chat_id=chat_id)
+            .join(UserPreferences, UserScore.user_id == UserPreferences.user_id, isouter=True)
+            .filter(UserPreferences.settings.is_(None) | UserPreferences.settings.contains("off"))
             .order_by(desc(UserScore.score))
             .limit(limit)
             .all()
@@ -35,6 +40,8 @@ async def get_top_weekly_scores(chat_id, limit=5):
         top_weekly_scores = (
             session.query(WeeklyScore.user_id, WeeklyScore.score)
             .filter_by(chat_id=chat_id)
+            .join(UserPreferences, WeeklyScore.user_id == UserPreferences.user_id, isouter=True)
+            .filter(UserPreferences.settings.is_(None) | UserPreferences.settings.contains("off"))
             .order_by(desc(WeeklyScore.score))
             .limit(limit)
             .all()
@@ -145,3 +152,45 @@ async def update_user_scores(user_id: int, poll_id: str, option_id: int):
             session.close()
         except Exception as e:
             print(f"Error in update_user_scores function: {e}")
+
+def create_answers_distribution_plot(total_correct_answers: int, total_wrong_answers: int, total_score: float, dark_mode=False) -> Tuple[str, BytesIO]:
+    if dark_mode:
+        background_color = 'black'
+        text_color = 'white'
+        correct_color = '#006400'
+        wrong_color = '#8B0000'
+    else:
+        background_color = 'white'
+        text_color = 'black'
+        correct_color = 'lightgreen'
+        wrong_color = 'lightcoral'
+
+    total_accuracy = (total_correct_answers / (total_correct_answers + total_wrong_answers)) * 100 if total_correct_answers + total_wrong_answers > 0 else 0
+    labels = ['Correct Answers', 'Wrong Answers']
+    values = [total_correct_answers, total_wrong_answers]
+    fig, ax = plt.subplots()
+    fig.patch.set_facecolor(background_color)
+    ax.set_facecolor(background_color)
+    ax.bar(labels, values, color=[correct_color, wrong_color], width=0.5)
+    ax.set_xlabel('Category', color=text_color)
+    ax.set_ylabel('Count', color=text_color)
+    ax.set_title('Total Answers Distribution', color=text_color)
+    for i, value in enumerate(values):
+        ax.text(i, value, str(value), ha='center', va='bottom', color=text_color)
+    ax.spines['bottom'].set_color(text_color)
+    ax.spines['top'].set_color(text_color)
+    ax.spines['right'].set_color(text_color)
+    ax.spines['left'].set_color(text_color)
+    ax.tick_params(axis='x', colors=text_color)
+    ax.tick_params(axis='y', colors=text_color)
+    legend_labels = ['Correct Answers', 'Wrong Answers']
+    legend_colors = [plt.Rectangle((0, 0), 1, 1, color=color) for color in [correct_color, wrong_color]]
+    legend = ax.legend(legend_colors, legend_labels)
+    legend.get_frame().set_facecolor(background_color)
+    for text in legend.get_texts():
+        text.set_color(text_color)
+    caption = f"Total Score Across Chats: {total_score}\nAccuracy: {total_accuracy:.2f}%"
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', facecolor=background_color)
+    buffer.seek(0)
+    return caption, buffer
