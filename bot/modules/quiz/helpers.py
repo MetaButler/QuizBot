@@ -42,7 +42,16 @@ async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_
         total_retries = 0
         max_retries = 3
         while total_retries < 2 * max_retries:
-            use_trivia_api = random.choice([True, False])
+            use_trivia_api = True
+            opentdb_categories = get_random_opentdb_category(chat_id=chat_id)
+            trivia_categories = get_random_opentdb_category(chat_id=chat_id)
+            if (opentdb_categories is None and trivia_categories is None) or (opentdb_categories is not None and trivia_categories is not None):
+                use_trivia_api = random.choice([True, False])
+            else:
+                if opentdb_categories is None:
+                    use_trivia_api = True
+                elif trivia_categories is None:
+                    use_trivia_api = False
             if use_trivia_api:
                 if total_retries // 2 < max_retries:
                     category = get_random_trivia_category(chat_id)
@@ -54,7 +63,12 @@ async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_
                             await process_question_from_trivia_api(context, chat_id, data, message_thread_id)
                             return
                     else:
+                        await context.bot.send_message(
+                            chat_id=chat_id,
+                            text="No more questions found. Maybe you should enable more categories!"
+                        )
                         print("Failed to fetch a question from Trivia API")
+                        return
                 else:
                     print("Exceeded Trivia API retry limit")
             else:
@@ -67,7 +81,12 @@ async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_
                             await process_question_from_opentdb(context, chat_id, data, message_thread_id)
                             return
                     else:
+                        await context.bot.send_message(
+                            chat_id=chat_id,
+                            text="No more questions found. Maybe you should enable more categories!"
+                        )
                         print("Failed to fetch a question from OpenTDB")
+                        return
                 else:
                     print("Exceeded OpenTDB retry limit")
             total_retries += 1
