@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from telegram import Update, ChatMember, Poll
 from telegram.ext import ContextTypes
 from bot.helpers.http import fetch_quiz_question
+from bot.helpers.misc import get_start_time
 
 # YAML Loader
 db_config = load_config("config.yml")["database"]
@@ -21,6 +22,8 @@ async def enablequiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     chat = update.effective_chat
     message = update.effective_message
     user = update.effective_user
+    if int(message.date.timestamp()) < get_start_time():
+        return
     
     if chat.type == 'private':
         await message.reply_text(
@@ -76,6 +79,8 @@ async def disablequiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     chat = update.effective_chat
     message = update.effective_message
     user = update.effective_user
+    if int(message.date.timestamp()) < get_start_time():
+        return
 
     if chat.type == 'private':
         await message.reply_text(
@@ -130,6 +135,8 @@ async def quizstatus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     chat = update.effective_chat
     user = update.effective_user
     message = update.effective_message
+    if int(message.date.timestamp()) < get_start_time():
+        return
 
     if chat.type == 'private':
         await message.reply_text(
@@ -183,6 +190,8 @@ async def quizstatus(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     message = update.effective_message
+    if int(message.date.timestamp()) < get_start_time():
+        return
 
     if chat.type != "private":
         await message.reply_text(

@@ -4,6 +4,7 @@ from bot.modules.quiz.services import is_quiz_enabled
 from bot.helpers.yaml import load_config
 from typing import Final, List
 from bot.modules.misc.services import get_bot_stats
+from bot.helpers.misc import get_start_time
 
 # YAML Loader
 telegram_config = load_config("config.yml")["telegram"]
@@ -13,6 +14,9 @@ AUTHORIZED_IDS: Final[List[int]] = [int(telegram_id) for telegram_id in telegram
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_type = update.message.chat.type
+    message = update.effective_message
+    if int(message.date.timestamp()) < get_start_time():
+        return
     if chat_type == 'private':
         await update.message.reply_text(
             text="Hi, I'm alive! To get a quiz, press: /quiz\n\nIf you want to use this bot in a group for auto quizzes, you can add me to your group by clicking the button below.",
@@ -42,6 +46,8 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     message = update.effective_message
     chat = update.effective_chat
+    if int(message.date.timestamp()) < get_start_time():
+        return
     chat_member = await context.bot.get_chat_member(
         chat_id=chat.id,
         user_id=user.id
@@ -114,6 +120,8 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def stats(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
     user = update.effective_user
+    if int(message.date.timestamp()) < get_start_time():
+        return
 
     if user.id not in AUTHORIZED_IDS:
         await message.reply_text(

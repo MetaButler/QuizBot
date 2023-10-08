@@ -2,12 +2,15 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot.modules.scores.services import get_top_scores, get_top_weekly_scores, get_user_score, get_user_total_score, create_answers_distribution_plot
 from bot.modules.settings.services import get_user_global_config
-import matplotlib.pyplot as plt
 import io
+from bot.helpers.misc import get_start_time
 
 async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     message = update.effective_message
+
+    if int(message.date.timestamp()) < get_start_time():
+        return
 
     if chat.type == 'private':
         await message.reply_text(
@@ -55,6 +58,9 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def weekly_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     message = update.effective_message
+
+    if int(message.date.timestamp()) < get_start_time():
+        return
 
     if chat.type == 'private':
         await message.reply_text(
@@ -104,6 +110,9 @@ async def score(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
     user = update.effective_user
     chat = update.effective_chat
+
+    if int(message.date.timestamp()) < get_start_time():
+        return
 
     user_score, correct_answers, wrong_answers, accuracy = await get_user_score(chat_id=chat.id, user_id=user.id)
     if all(var is None for var in [user_score, correct_answers, wrong_answers, accuracy]):
@@ -158,6 +167,9 @@ async def score(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 async def scores_dm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
     user = update.effective_user
+
+    if int(message.date.timestamp()) < get_start_time():
+        return
 
     total_score, total_correct_answers, total_wrong_answers = await get_user_total_score(user_id=user.id)
     if all(var is None for var in [total_score, total_correct_answers, total_wrong_answers]):

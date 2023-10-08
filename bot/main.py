@@ -4,8 +4,8 @@ from bot.modules.quiz.commands import enablequiz, disablequiz, quizstatus, quiz
 from bot.modules.quiz.callbacks import send_auto_question
 from bot.modules.scores.commands import rank, weekly_rank, score, scores_dm
 from bot.modules.scores.callbacks import handle_score_button, log_user_response
-from bot.modules.settings.commands import settings_dm
-from bot.modules.settings.callbacks import user_global_settings
+from bot.modules.settings.commands import settings_dm, settings
+from bot.modules.settings.callbacks import user_global_settings, chat_settings, reset_chat_questions_handler, close_settings_btn
 from typing import Final
 from sqlalchemy import create_engine
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, filters, PollAnswerHandler
@@ -38,6 +38,10 @@ quiz_handler = CommandHandler('quiz', quiz)
 poll_answer_handler = PollAnswerHandler(log_user_response)
 settings_dm_handler = CommandHandler('settings', settings_dm, filters.ChatType.PRIVATE)
 settings_dm_cb_handler = CallbackQueryHandler(user_global_settings, pattern=r'^stngs_(ui|prvcy)_\d+$')
+settings_handler = CommandHandler('settings', settings, (filters.ChatType.GROUP | filters.ChatType.SUPERGROUP))
+settings_grp_cb_handler = CallbackQueryHandler(chat_settings, pattern=r'^grp_(rpt|tmt|cat|rst)_-\d+_\d+$')
+reset_chat_qstns_cb_handler = CallbackQueryHandler(reset_chat_questions_handler, pattern=r'^rst_(yes|no)_-\d+_\d+$')
+close_settings_btn_handler = CallbackQueryHandler(close_settings_btn, pattern=r'^grp_cnl_-\d+_\d+$')
 
 # Add Handlers
 application.add_handler(start_handler)
@@ -55,6 +59,10 @@ application.add_handler(quiz_handler)
 application.add_handler(poll_answer_handler)
 application.add_handler(settings_dm_handler)
 application.add_handler(settings_dm_cb_handler)
+application.add_handler(settings_handler)
+application.add_handler(settings_grp_cb_handler)
+application.add_handler(reset_chat_qstns_cb_handler)
+application.add_handler(close_settings_btn_handler)
 
 # Job Queueing
 job_queue = application.job_queue
