@@ -13,7 +13,7 @@ async def settings_dm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if user_settings is None:
         settings = {
             'ui': 'light',
-            'privacy': 'on',
+            'privacy': 'off',
         }
         await set_user_global_config(
             user_id=user.id,
