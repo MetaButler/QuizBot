@@ -2,7 +2,7 @@ from bot.database.models import UserScore, WeeklyScore, PollAnswer, UserPreferen
 from sqlalchemy.orm import sessionmaker
 from bot.helpers.yaml import load_config
 from typing import Final, Tuple
-from sqlalchemy import create_engine, desc, func, cast, String
+from sqlalchemy import create_engine, desc, func, cast, Text
 import io
 from io import BytesIO
 import matplotlib.pyplot as plt
@@ -23,7 +23,8 @@ async def get_top_scores(chat_id, limit=5):
             session.query(UserScore.user_id, UserScore.score)
             .filter_by(chat_id=chat_id)
             .join(UserPreferences, UserScore.user_id == UserPreferences.user_id, isouter=True)
-            .filter(UserPreferences.settings.is_(None) | UserPreferences.settings.contains("off"))
+            .filter(UserPreferences.settings.is_(None) | (cast(UserPreferences.settings, Text)).contains("off"))
+            .filter(UserScore.score > 0)
             .order_by(desc(UserScore.score))
             .limit(limit)
             .all()
@@ -41,7 +42,8 @@ async def get_top_weekly_scores(chat_id, limit=5):
             session.query(WeeklyScore.user_id, WeeklyScore.score)
             .filter_by(chat_id=chat_id)
             .join(UserPreferences, WeeklyScore.user_id == UserPreferences.user_id, isouter=True)
-            .filter(UserPreferences.settings.is_(None) | UserPreferences.settings.contains("off"))
+            .filter(UserPreferences.settings.is_(None) | (cast(UserPreferences.settings, Text)).contains("off"))
+            .filter(WeeklyScore.score > 0)
             .order_by(desc(WeeklyScore.score))
             .limit(limit)
             .all()
