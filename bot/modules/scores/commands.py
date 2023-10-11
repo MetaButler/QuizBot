@@ -146,7 +146,7 @@ async def score(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
                     ],
                     [
                         InlineKeyboardButton(text="Your Score", callback_data='score_btn'),
-                        InlineKeyboardButton(text=f"{user_score}", callback_data='score_btn'),
+                        InlineKeyboardButton(text=f"{user_score:.2f}", callback_data='score_btn'),
                     ],
                     [
                         InlineKeyboardButton(text="Correct Answers", callback_data='score_btn'),
@@ -158,7 +158,7 @@ async def score(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
                     ],
                     [
                         InlineKeyboardButton(text="Accuracy", callback_data='score_btn'),
-                        InlineKeyboardButton(text=f"{accuracy}", callback_data='score_btn'),
+                        InlineKeyboardButton(text=f"{accuracy:.2f}", callback_data='score_btn'),
                     ],
                 ]
             )
