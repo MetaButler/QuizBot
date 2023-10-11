@@ -1,7 +1,7 @@
 from bot.helpers.yaml import load_config
 from bot.modules.misc.commands import start, help, stats
 from bot.modules.quiz.commands import enablequiz, disablequiz, quizstatus, quiz
-from bot.modules.quiz.callbacks import send_auto_question
+from bot.modules.quiz.callbacks import send_auto_question_900_timeout, send_auto_question_1800_timeout, send_auto_question_2700_timeout, send_auto_question_no_timeout_or_3600_timeout, send_auto_question_5400_timeout, send_auto_question_7200_timeout
 from bot.modules.scores.commands import rank, weekly_rank, score, scores_dm
 from bot.modules.scores.callbacks import handle_score_button, log_user_response
 from bot.modules.settings.commands import settings_dm, settings
@@ -83,11 +83,51 @@ application.add_handler(close_page_button_handler)
 
 # Job Queueing
 job_queue = application.job_queue
-# job_queue.run_once(
-#     callback=send_auto_question,
-#     when=5,
-# )
+job_queue.run_once(
+    callback=send_auto_question_900_timeout,
+    when=10,
+)
+job_queue.run_once(
+    callback=send_auto_question_1800_timeout,
+    when=10,
+)
+job_queue.run_once(
+    callback=send_auto_question_2700_timeout,
+    when=10,
+)
+job_queue.run_once(
+    callback=send_auto_question_no_timeout_or_3600_timeout,
+    when=10,
+)
+job_queue.run_once(
+    callback=send_auto_question_5400_timeout,
+    when=10,
+)
+job_queue.run_once(
+    callback=send_auto_question_7200_timeout,
+    when=10,
+)
 job_queue.run_repeating(
-    callback=send_auto_question,
-    interval=3600,
+    send_auto_question_900_timeout,
+    interval=900
+)
+job_queue.run_repeating(
+    send_auto_question_1800_timeout,
+    interval=1800
+)
+job_queue.run_repeating(
+    send_auto_question_2700_timeout,
+    interval=2700
+)
+job_queue.run_repeating(
+    send_auto_question_no_timeout_or_3600_timeout,
+    interval=3600
+)
+job_queue.run_repeating(
+    send_auto_question_5400_timeout,
+    interval=5400
+)
+job_queue.run_repeating(
+    send_auto_question_7200_timeout,
+    interval=7200
 )

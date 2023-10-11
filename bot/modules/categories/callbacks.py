@@ -163,8 +163,8 @@ async def paginate_category_names(category_data, page: int, chat_id: int, user_i
     paginated_ids = list(category_data.keys())[start_idx:end_idx]
     existing_topics = fetch_categories(chat_id=chat_id)
     if existing_topics:
-        trivia_topics = set(existing_topics[0].split(',') if existing_topics[0] else [])
-        opentdb_topics = set(existing_topics[1].split(',') if existing_topics[1] else [])
+        trivia_topics = set(existing_topics[0].split(',') if (existing_topics[0] or not len(existing_topics[0]) == 0) else [])
+        opentdb_topics = set(existing_topics[1].split(',') if (existing_topics[1] or not len(existing_topics[0]) == 0) else [])
     else:
         trivia_topics = set()
         opentdb_topics = set()

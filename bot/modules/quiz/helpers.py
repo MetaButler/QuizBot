@@ -1,43 +1,71 @@
 from telegram.ext import ContextTypes
 from telegram import Poll
-from bot.modules.quiz.services import Session, get_random_opentdb_category, get_random_trivia_category
+from bot.modules.quiz.services import get_random_opentdb_category, get_random_trivia_category
 import random
 from bot.modules.quiz.services import insert_question_into_db, is_question_sent
 from bot.helpers.http import fetch_question, process_opentdb_api_data, process_trivia_api_data
+from typing import Dict
+import asyncio
 
-async def process_question_from_opentdb(context: ContextTypes.DEFAULT_TYPE, chat_id: int, data: dict, message_thread_id: int):
+async def process_question_from_opentdb(context: ContextTypes.DEFAULT_TYPE, chat_id: int, data: dict, message_thread_id: int, group_settings: Dict[str, int]):
     if 'results' not in data or not data['results']:
         return
     question_data = await process_opentdb_api_data(data)
-    poll_message = await context.bot.send_poll(
-        chat_id=chat_id,
-        question=question_data['question'],
-        options=question_data['options'],
-        correct_option_id=question_data['correct_option_id'],
-        message_thread_id=message_thread_id,
-        is_anonymous=False,
-        type=Poll.QUIZ
-    )
+    if group_settings is None or (group_settings and int(group_settings["poll_timeout"]) == 0):
+        poll_message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=question_data['question'],
+            options=question_data['options'],
+            correct_option_id=question_data['correct_option_id'],
+            message_thread_id=message_thread_id,
+            is_anonymous=False,
+            type=Poll.QUIZ
+        )
+    else:
+        poll_message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=question_data['question'],
+            options=question_data['options'],
+            correct_option_id=question_data['correct_option_id'],
+            message_thread_id=message_thread_id,
+            is_anonymous=False,
+            type=Poll.QUIZ,
+            open_period=int(group_settings["poll_timeout"])
+        )
     if poll_message:
         await insert_question_into_db(chat_id, question_data['question_id'], question_data['correct_option_id'], poll_message.poll.id)
+        await asyncio.sleep(5)
 
-async def process_question_from_trivia_api(context: ContextTypes.DEFAULT_TYPE, chat_id: int, data: list, message_thread_id: int):
+async def process_question_from_trivia_api(context: ContextTypes.DEFAULT_TYPE, chat_id: int, data: list, message_thread_id: int, group_settings: Dict[str, int]):
     if not data or not isinstance(data, list):
         return
     question_data = await process_trivia_api_data(data)
-    poll_message = await context.bot.send_poll(
-        chat_id=chat_id,
-        question=question_data['question'],
-        options=question_data['options'],
-        correct_option_id=question_data['correct_option_id'],
-        message_thread_id=message_thread_id,
-        is_anonymous=False,
-        type=Poll.QUIZ
-    )
+    if group_settings is None or (group_settings and int(group_settings["poll_timeout"]) == 0):
+        poll_message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=question_data['question'],
+            options=question_data['options'],
+            correct_option_id=question_data['correct_option_id'],
+            message_thread_id=message_thread_id,
+            is_anonymous=False,
+            type=Poll.QUIZ
+        )
+    else:
+        poll_message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=question_data['question'],
+            options=question_data['options'],
+            correct_option_id=question_data['correct_option_id'],
+            message_thread_id=message_thread_id,
+            is_anonymous=False,
+            type=Poll.QUIZ,
+            open_period=int(group_settings["poll_timeout"])
+        )
     if poll_message:
         await insert_question_into_db(chat_id, question_data['question_id'], question_data['correct_option_id'], poll_message.poll.id)
+        await asyncio.sleep(5)
 
-async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_id):
+async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_id: int, group_settings: Dict[str, int]):
     try:
         total_retries = 0
         max_retries = 3
@@ -60,7 +88,7 @@ async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_
                         selected_question = random.choice(data)
                         question_id = selected_question['id']
                         if not is_question_sent(chat_id, question_id):
-                            await process_question_from_trivia_api(context, chat_id, data, message_thread_id)
+                            await process_question_from_trivia_api(context, chat_id, data, message_thread_id, group_settings)
                             return
                     else:
                         await context.bot.send_message(
@@ -78,7 +106,7 @@ async def auto(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_thread_
                     if data and 'results' in data and data['results']:
                         question_id = data['results'][0]['question']
                         if not is_question_sent(chat_id, question_id):
-                            await process_question_from_opentdb(context, chat_id, data, message_thread_id)
+                            await process_question_from_opentdb(context, chat_id, data, message_thread_id, group_settings)
                             return
                     else:
                         await context.bot.send_message(
