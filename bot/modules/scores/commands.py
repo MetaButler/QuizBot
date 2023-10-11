@@ -190,9 +190,12 @@ async def scores_dm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     else:
         user_settings = await get_user_global_config(user_id=user.id)
-        ui_settings = user_settings.get("ui")
-        if ui_settings == 'dark':
-            dark_mode = True
+        if ui_settings is not None:
+            ui_settings = user_settings.get("ui")
+            if ui_settings == 'dark':
+                dark_mode = True
+            else:
+                dark_mode = False
         else:
             dark_mode = False
         caption, buffer = create_answers_distribution_plot(total_correct_answers=total_correct_answers, total_wrong_answers=total_wrong_answers, total_score=total_score, dark_mode=dark_mode)
