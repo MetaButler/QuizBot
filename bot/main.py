@@ -8,6 +8,7 @@ from bot.modules.scores.callbacks import handle_score_button, log_user_response
 from bot.modules.settings.commands import settings_dm, settings
 from bot.modules.settings.callbacks import user_global_settings, chat_settings, reset_chat_questions_handler, close_settings_btn
 from bot.modules.categories.callbacks import handle_category_btn, handle_reset_btn, button
+from bot.modules.broadcast.commands import broadcast
 from typing import Final
 from sqlalchemy import create_engine
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, filters, PollAnswerHandler
@@ -54,6 +55,7 @@ reset_cat_button_handler = CallbackQueryHandler(button, r'^reset_\d+$')
 topic_button_handler = CallbackQueryHandler(button, r'^topic#.*$')
 close_page_button_handler = CallbackQueryHandler(button, r'^close_\d+$')
 category_reset_btn = CallbackQueryHandler(handle_reset_btn, pattern=r'^cat_rst_(yes|no)_\d+$')
+broadcast_handler = CommandHandler('broadcast', broadcast)
 
 # Add Handlers
 application.add_handler(start_handler)
@@ -83,6 +85,7 @@ application.add_handler(reset_cat_button_handler)
 application.add_handler(topic_button_handler)
 application.add_handler(category_reset_btn)
 application.add_handler(close_page_button_handler)
+application.add_handler(broadcast_handler)
 
 # Job Queueing
 job_queue = application.job_queue
