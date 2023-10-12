@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, desc, func, cast, Text
 import io
 from io import BytesIO
 import matplotlib.pyplot as plt
+from telegram.ext import ContextTypes
 
 # YAML Loader
 db_config = load_config("config.yml")["database"]
@@ -54,9 +55,9 @@ async def get_top_weekly_scores(chat_id, limit=5):
         print(f"Error fetching top weekly scores: {e}")
         return []
     
-def reset_weekly_scores() -> None:
+async def reset_weekly_scores(context: ContextTypes.DEFAULT_TYPE) -> None:
+    session = Session()
     try:
-        session = Session()
         session.query(WeeklyScore).update({
             WeeklyScore.score: 0,
             WeeklyScore.correct_answers: 0,

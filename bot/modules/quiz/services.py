@@ -2,7 +2,7 @@ from bot.database.models import GroupPreference, PollAnswer, SentQuestion
 from sqlalchemy.orm import sessionmaker
 from bot.helpers.yaml import load_config
 from typing import Final
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, update
 import random
 
 # YAML Loader
@@ -59,3 +59,10 @@ def get_random_opentdb_category(chat_id: int):
 def is_question_sent(chat_id: int, question_id):
     session = Session()
     return session.query(SentQuestion).filter_by(chat_id=chat_id, question_id=question_id).first() is not None
+
+async def set_quiz_false(chat_id: int) -> None:
+    session = Session()
+    update_statement = update(GroupPreference).where(GroupPreference.chat_id == chat_id).values(send_questions=False)
+    session.execute(update_statement)
+    session.commit()
+    session.close()
