@@ -3,6 +3,7 @@ from bot.modules.misc.commands import start, help, stats
 from bot.modules.quiz.commands import enablequiz, disablequiz, quizstatus, quiz
 from bot.modules.quiz.callbacks import send_auto_question_900_timeout, send_auto_question_1800_timeout, send_auto_question_2700_timeout, send_auto_question_no_timeout_or_3600_timeout, send_auto_question_5400_timeout, send_auto_question_7200_timeout
 from bot.modules.scores.commands import rank, weekly_rank, score, scores_dm
+from bot.modules.scores.services import reset_weekly_scores
 from bot.modules.scores.callbacks import handle_score_button, log_user_response
 from bot.modules.settings.commands import settings_dm, settings
 from bot.modules.settings.callbacks import user_global_settings, chat_settings, reset_chat_questions_handler, close_settings_btn
@@ -10,6 +11,8 @@ from bot.modules.categories.callbacks import handle_category_btn, handle_reset_b
 from typing import Final
 from sqlalchemy import create_engine
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, filters, PollAnswerHandler
+import pytz
+from datetime import datetime
 
 # YAML Loader
 telegram_config = load_config("config.yml")["telegram"]
@@ -83,6 +86,12 @@ application.add_handler(close_page_button_handler)
 
 # Job Queueing
 job_queue = application.job_queue
+time_midnight = datetime.now(pytz.timezone('Asia/Kolkata')).replace(hour=1, minute=0, second=0, microsecond=0)
+job_queue.run_daily(
+    callback=reset_weekly_scores,
+    days=(0,),
+    time=time_midnight,
+)
 job_queue.run_once(
     callback=send_auto_question_900_timeout,
     when=10,
