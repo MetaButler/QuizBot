@@ -36,8 +36,6 @@ async def broadcast(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message_as_markdown = message.text_markdown_v2.split(maxsplit=1)[1]
     buttonurl_pattern = r"buttonurl:\s\\\[(.*)\\\]\s{1}(\\{\\{\w+\\}\\}|https:\/\/\S+)"
     buttonurl_matches = re.findall(buttonurl_pattern, message_as_markdown)
-    print(buttonurl_matches)
-    print(message_as_markdown)
     for buttonurl_match in buttonurl_matches:
         message_as_markdown = message_as_markdown.replace(f'buttonurl: \\[{buttonurl_match[0]}\\] {str(buttonurl_match[1]).encode("raw_unicode_escape").decode("unicode_escape")}', "")
     button_urls = list()
