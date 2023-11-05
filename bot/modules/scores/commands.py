@@ -70,7 +70,7 @@ async def weekly_rank(update: Update,
     score_message = await build_scores(top_scores=weekly_top_scores,
                                        context=context,
                                        chat_id=chat.id)
-    text_message += score_message
+    message_text += score_message
 
     await message.reply_text(text=message_text,
                              allow_sending_without_reply=True,
