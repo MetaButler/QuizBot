@@ -44,6 +44,8 @@ async def build_scores(top_scores: List[Row[Tuple[int, Any]]] | list,
         except BadRequest:
             continue
         i += 1
+        if i > 5:
+            break
 
         if i == 1:
             trophy = "🏆"
