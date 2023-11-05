@@ -33,7 +33,7 @@ async def build_scores(top_scores: List[Row[Tuple[int, Any]]] | list,
                        context: ContextTypes.DEFAULT_TYPE,
                        chat_id: int) -> str:
     i = 0
-    index = 0
+    index = -1
     text_message = ""
     while index < len(top_scores):
         index += 1
