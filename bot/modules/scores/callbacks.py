@@ -36,6 +36,7 @@ async def build_scores(top_scores: List[Row[Tuple[int, Any]]] | list,
     index = 0
     text_message = ""
     while index < len(top_scores):
+        index += 1
         user_id, score = top_scores[index]
         try:
             user = await context.bot.get_chat_member(chat_id=chat_id,
@@ -43,7 +44,6 @@ async def build_scores(top_scores: List[Row[Tuple[int, Any]]] | list,
         except BadRequest:
             continue
         i += 1
-        index += 1
 
         if i == 1:
             trophy = "🏆"
