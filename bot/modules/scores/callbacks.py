@@ -35,7 +35,7 @@ async def build_scores(top_scores: List[Row[Tuple[int, Any]]] | list,
     i = 0
     index = -1
     text_message = ""
-    while index < len(top_scores):
+    while (index + 1) < len(top_scores):
         index += 1
         user_id, score = top_scores[index]
         try:
