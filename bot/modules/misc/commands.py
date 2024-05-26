@@ -99,7 +99,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             'dev_only': True,
         }
     }
-    
+
     help_message = ""
     for command, body in commands.items():
         if not (body.get('admin_only') or body.get('dev_only')):
@@ -109,7 +109,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 if body.get('admin_only') and chat_member.status in (ChatMember.OWNER, ChatMember.ADMINISTRATOR):
                     help_message += f'\n<b>/{command}</b>: {body.get("description")} (<u>ADMIN ONLY</u>)'
                 elif body.get('dev_only') and user.id in AUTHORIZED_IDS:
-                    help_message += f'\n<b>/{command}<b>: {body.get("description")} (<u>DEV ONLY</u>)'
+                    help_message += f'\n<b>/{command}</b>: {body.get("description")} (<u>DEV ONLY</u>)'
     await update.message.reply_html(
         text=help_message,
         reply_to_message_id=message.id,
