@@ -1,9 +1,13 @@
+from typing import Any, List, Tuple
+
 from sqlalchemy import Row
 from telegram import Update
-from telegram.ext import ContextTypes
-from bot.modules.scores.services import update_user_scores
-from typing import Any, List, Tuple
 from telegram.error import BadRequest
+from telegram.ext import ContextTypes
+
+from bot.modules.scores.services import (get_poll_answer_record,
+                                         update_chat_stat, update_user_scores,
+                                         update_user_stat)
 
 
 async def handle_score_button(update: Update,
@@ -25,6 +29,11 @@ async def log_user_response(update: Update,
         await update_user_scores(user_id=user.id,
                                  poll_id=poll_id,
                                  option_id=option_id)
+        poll_answer_record = await get_poll_answer_record(poll_id=poll_id)
+        if poll_answer_record:
+            chat_id, _ = poll_answer_record
+        await update_user_stat(user_id=user.id)
+        await update_chat_stat(chat_id=chat_id)
     except Exception as e:
         print(f"Error in log_user_response function: {e}")
 

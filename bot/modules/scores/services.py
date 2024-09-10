@@ -1,12 +1,18 @@
-from bot.database.models import UserScore, WeeklyScore, PollAnswer, UserPreferences
-from sqlalchemy.orm import sessionmaker
-from bot.helpers.yaml import load_config
-from typing import Final, Tuple
-from sqlalchemy import create_engine, desc, func, cast, Text
 import io
+from datetime import datetime, timedelta
 from io import BytesIO
+from typing import Final, Tuple
+
 import matplotlib.pyplot as plt
+import pytz
+from sqlalchemy import Text, cast, create_engine, desc, func
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import sessionmaker
 from telegram.ext import ContextTypes
+
+from bot.database.models import (ActiveGroupStat, ActiveUserStat, PollAnswer,
+                                 UserPreferences, UserScore, WeeklyScore)
+from bot.helpers.yaml import load_config
 
 # YAML Loader
 db_config = load_config("config.yml")["database"]
@@ -177,6 +183,51 @@ async def update_user_scores(user_id: int, poll_id: str, option_id: int):
             session.close()
         except Exception as e:
             print(f"Error in update_user_scores function: {e}")
+
+
+async def update_user_stat(user_id: int) -> None:
+    session = Session()
+    current_time = datetime.now(pytz.timezone('Asia/Kolkata'))
+    try:
+        record = session.query(ActiveUserStat).filter_by(user_id=user_id).one()
+        record.last_quiz_active_time = current_time
+    except NoResultFound:
+        new_record = ActiveUserStat(user_id=user_id,
+                                    last_quiz_active_time=current_time)
+        session.add(new_record)
+    session.commit()
+
+
+async def update_chat_stat(chat_id: int) -> None:
+    session = Session()
+    current_time = datetime.now(pytz.timezone('Asia/Kolkata'))
+    try:
+        record = session.query(ActiveGroupStat).filter_by(
+            chat_id=chat_id).one()
+        record.last_quiz_group_active_time = current_time
+    except NoResultFound:
+        new_record = ActiveGroupStat(chat_id=chat_id,
+                                     last_quiz_group_active_time=current_time)
+        session.add(new_record)
+    session.commit()
+
+
+async def delete_old_user_stats(context: ContextTypes.DEFAULT_TYPE) -> None:
+    session = Session()
+    current_time = datetime.now(pytz.timezone('Asia/Kolkata'))
+    threshold_time = current_time - timedelta(hours=24)
+    session.query(ActiveUserStat).filter(
+        ActiveUserStat.last_quiz_active_time < threshold_time).delete()
+    session.commit()
+
+
+async def delete_old_chat_stats(context: ContextTypes.DEFAULT_TYPE) -> None:
+    session = Session()
+    current_time = datetime.now(pytz.timezone('Asia/Kolkata'))
+    threshold_time = current_time - timedelta(hours=24)
+    session.query(ActiveGroupStat).filter(
+        ActiveGroupStat.last_quiz_group_active_time < threshold_time).delete()
+    session.commit()
 
 
 def create_answers_distribution_plot(total_correct_answers: int,

@@ -17,7 +17,6 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if chat.type == 'private':
         await message.reply_text(
             text="This command is not meant to be used in private chats!",
-            allow_sending_without_reply=True,
             quote=True,
             reply_to_message_id=message.id)
         return
@@ -25,7 +24,6 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     if len(top_scores) == 0:
         await message.reply_text(text="No scores found for this chat!",
-                                 allow_sending_without_reply=True,
                                  quote=True,
                                  reply_to_message_id=message.id)
         return
@@ -37,7 +35,6 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text_message += score_message
 
     await message.reply_text(text=text_message,
-                             allow_sending_without_reply=True,
                              quote=True,
                              reply_to_message_id=message.id)
 
@@ -53,7 +50,6 @@ async def weekly_rank(update: Update,
     if chat.type == 'private':
         await message.reply_text(
             text="This command is not meant to be used in private chats!",
-            allow_sending_without_reply=True,
             quote=True,
             reply_to_message_id=message.id)
         return
@@ -61,7 +57,6 @@ async def weekly_rank(update: Update,
 
     if len(weekly_top_scores) == 0:
         await message.reply_text(text="No scores found for this chat!",
-                                 allow_sending_without_reply=True,
                                  quote=True,
                                  reply_to_message_id=message.id)
         return
@@ -73,7 +68,6 @@ async def weekly_rank(update: Update,
     message_text += score_message
 
     await message.reply_text(text=message_text,
-                             allow_sending_without_reply=True,
                              quote=True,
                              reply_to_message_id=message.id)
 
@@ -93,7 +87,6 @@ async def score(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         await message.reply_text(
             text='Some error occurred, please retry later',
             quote=True,
-            allow_sending_without_reply=True,
             reply_to_message_id=message.id)
         return
     elif all(
@@ -102,14 +95,12 @@ async def score(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         await message.reply_text(
             text='Go answer some questions first to get a score!',
             quote=True,
-            allow_sending_without_reply=True,
             reply_to_message_id=message.id)
         return
     else:
         message_text = "Your Score:"
         await message.reply_text(
             text=message_text,
-            allow_sending_without_reply=True,
             quote=True,
             reply_to_message_id=message.id,
             reply_markup=InlineKeyboardMarkup([
@@ -161,7 +152,6 @@ async def scores_dm(update: Update,
         await message.reply_text(
             text='Something went wrong, please retry later',
             quote=True,
-            allow_sending_without_reply=True,
             reply_to_message_id=message.id)
         return
     elif all(var == 0 for var in
@@ -169,7 +159,6 @@ async def scores_dm(update: Update,
         await message.reply_text(
             text='Go answer some questions first to get a score!',
             quote=True,
-            allow_sending_without_reply=True,
             reply_to_message_id=message.id)
         return
     else:
@@ -189,6 +178,5 @@ async def scores_dm(update: Update,
             dark_mode=dark_mode)
         await message.reply_photo(photo=io.BufferedReader(buffer),
                                   caption=caption,
-                                  allow_sending_without_reply=True,
                                   quote=True,
                                   reply_to_message_id=message.id)
