@@ -1,8 +1,10 @@
-from bot.database.models import GroupPreference, UserScore
+from typing import Final, Optional, Tuple
+
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
+
+from bot.database.models import ActiveGroupStat, ActiveUserStat, GroupPreference, UserScore
 from bot.helpers.yaml import load_config
-from typing import Final, Tuple, Optional
-from sqlalchemy import create_engine
 
 # YAML Loader
 db_config = load_config("config.yml")["database"]
@@ -12,6 +14,7 @@ DB_SCHEMA: Final[str] = db_config.get("schema")
 
 db_engine = create_engine(DB_SCHEMA)
 Session = sessionmaker(bind=db_engine)
+
 
 def get_bot_stats() -> Tuple[Optional[int], Optional[int]]:
     total_chats = None
@@ -27,3 +30,11 @@ def get_bot_stats() -> Tuple[Optional[int], Optional[int]]:
     finally:
         session.close()
         return (total_chats, total_users)
+
+
+def get_recent_stats() -> Tuple[int, int]:
+    session = Session()
+    user_row_count = session.query(func.count(ActiveUserStat.user_id)).scalar()
+    chat_row_count = session.query(func.count(
+        ActiveGroupStat.chat_id)).scalar()
+    return user_row_count, chat_row_count

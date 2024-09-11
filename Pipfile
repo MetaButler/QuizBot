@@ -4,16 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-python-telegram-bot = {extras = ["all"], version = "==20.6"}
-matplotlib = "==3.8.0"
-pyyaml = "==6.0.1"
-sqlalchemy = "==2.0.21"
-pytz = "==2023.3.post1"
-alembic = "==1.12.0"
+python-telegram-bot = {extras = ["all"], version = "==21.5"}
+matplotlib = "==3.9.2"
+pyyaml = "==6.0.2"
+sqlalchemy = "==2.0.34"
+pytz = "==2024.1"
+alembic = "==1.13.2"
 
 [dev-packages]
 yapf = "*"
 
 [requires]
 python_version = "3.12"
-python_full_version = "3.12.0"
+python_full_version = "3.12.6"
