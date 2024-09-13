@@ -8,8 +8,9 @@ python-telegram-bot = {extras = ["all"], version = "==21.5"}
 matplotlib = "==3.9.2"
 pyyaml = "==6.0.2"
 sqlalchemy = "==2.0.34"
-pytz = "==2024.1"
+pytz = "==2024.2"
 alembic = "==1.13.2"
+psycopg2-binary = "*"
 
 [dev-packages]
 yapf = "*"
