@@ -7,7 +7,6 @@ from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
                           CommandHandler, PollAnswerHandler, filters)
 
 from bot.helpers.yaml import load_config
-from bot.modules.broadcast.commands import broadcast
 from bot.modules.categories.callbacks import (button, handle_category_btn,
                                               handle_reset_btn)
 from bot.modules.misc.commands import help, start, stats
@@ -76,7 +75,6 @@ topic_button_handler = CallbackQueryHandler(button, r'^topic#.*$')
 close_page_button_handler = CallbackQueryHandler(button, r'^close_\d+$')
 category_reset_btn = CallbackQueryHandler(handle_reset_btn,
                                           pattern=r'^cat_rst_(yes|no)_\d+$')
-broadcast_handler = CommandHandler('broadcast', broadcast)
 
 # Add Handlers
 application.add_handler(start_handler)
@@ -106,7 +104,6 @@ application.add_handler(reset_cat_button_handler)
 application.add_handler(topic_button_handler)
 application.add_handler(category_reset_btn)
 application.add_handler(close_page_button_handler)
-application.add_handler(broadcast_handler)
 
 # Job Queueing
 job_queue = application.job_queue
