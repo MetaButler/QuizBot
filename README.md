@@ -1,8 +1,7 @@
-# 🌟 QuizBot: A Fun and Engaging Quiz Experience for Telegram Groups 🌟
-
-<p align="center">
-  <img src="path-to-your-logo.png" alt="QuizBot Logo" width="200"/>
-</p>
+<div align="center">
+  <img src="./assets/imgs/quizbot-logo.png" alt="QuizBot Logo" width="200"/>
+  <h1>🌟 QuizBot: A Fun and Engaging Quiz Experience for Telegram Groups 🌟</h1>
+</div>
 
 ---
 
